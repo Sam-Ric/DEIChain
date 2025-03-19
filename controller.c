@@ -139,7 +139,7 @@ int main() {
     validator();
     exit(0);
   } else if (validator_pid < 0)
-    erro("\x1b[31m[!]\x1b[0m Could not create the Miner process");
+    erro("\x1b[31m[!]\x1b[0m Could not create the Validator process");
 
   // -- Statistics process
   pid_t statistics_pid;
@@ -147,7 +147,7 @@ int main() {
     statistics();
     exit(0);
   } else if (statistics_pid < 0)
-    erro("\x1b[31m[!]\x1b[0m Could not create the Miner process");
+    erro("\x1b[31m[!]\x1b[0m Could not create the Statistics process");
 
   // Wait for the processes to finish (Temporary approach)
   for (int i = 0; i < 3; i++)
