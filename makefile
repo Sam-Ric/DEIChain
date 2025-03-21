@@ -1,7 +1,7 @@
 FLAGS	= -Wall -g
 CC	= gcc
 PROG	= DEIChain
-OBJS	= controller.o miner.o validator.o statistics.o
+OBJS	= controller.o miner.o validator.o statistics.o utils.o
 
 all:	${PROG}
 
@@ -16,13 +16,14 @@ ${PROG}:	${OBJS}
 
 ################################
 
-miner.o:	header.h miner.c
+utils.o:	utils.h utils.c
 
-validator.o:	validator.c
+miner.o:	utils.h miner.h miner.c
 
-statistics.o: statistics.c
+validator.o:	utils.h validator.h validator.c
 
-controller.o: header.h controller.c
+statistics.o:	utils.h statistics.h statistics.c
 
-DEIChain:	controller.o statistics.o validator.o miner.o
+controller.o:	utils.h validator.h statistics.h miner.h controller.c
 
+DEIChain:	controller.o statistics.o validator.o miner.o utils.o
