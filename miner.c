@@ -56,5 +56,4 @@ void miner(int num_miners) {
       exit(-1);
     }
   }
-
 }
