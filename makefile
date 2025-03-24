@@ -1,15 +1,20 @@
 FLAGS	= -Wall -g
 CC	= gcc
-PROG	= DEIChain
-OBJS	= controller.o miner.o validator.o statistics.o utils.o
+PROG1	= DEIChain
+PROG2 = TxGen
+OBJS1	= controller.o miner.o validator.o statistics.o utils.o
+OBJS2 = tx_gen.o utils.o
 
-all:	${PROG}
+all:	${PROG1} ${PROG2}
 
 clean:
-	rm ${OBJS}
+	rm ${OBJS1} ${OBJS2}
 
-${PROG}:	${OBJS}
-	${CC} ${FLAGS} ${OBJS} -o $@
+${PROG1}:	${OBJS1}
+	${CC} ${FLAGS} ${OBJS1} -o $@
+
+${PROG2}: ${OBJS2}
+	${CC} ${FLAGS} ${OBJS2} -o $@
 
 .c.o:
 	${CC}	${FLAGS} $< -c
@@ -26,4 +31,8 @@ statistics.o:	utils.h statistics.h statistics.c
 
 controller.o:	utils.h validator.h statistics.h miner.h controller.c
 
+tx_gen.o:	utils.h tx_gen.c
+
 DEIChain:	controller.o statistics.o validator.o miner.o utils.o
+
+TxGen:	tx_gen.o utils.o

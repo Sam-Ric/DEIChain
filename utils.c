@@ -13,6 +13,8 @@
 #include <string.h>
 #include <time.h>
 
+#include "utils.h"
+
 #define BUFFER_SIZE 100
 
 
@@ -78,16 +80,17 @@ void load_config(int *num_miners, int *pool_size, int *transactions_per_block, i
     buffer[strcspn(buffer, "\n")] = '\0';   // Remove the '\n' character
     
     // Assign the read value to the correct variable
-    if (line == 0 && (*num_miners = atoi(buffer)) == 0) {
+    printf("[DEBUG] num_miners = %d\n", convert_to_int(buffer));
+    if (line == 0 && (*num_miners = convert_to_int(buffer)) == 0) {
       log_message("Invalid value for NUM_MINERS", 'w', 1);
       exit(-1);
-    } else if (line == 1 && (*pool_size = atoi(buffer)) == 0) {
+    } else if (line == 1 && (*pool_size = convert_to_int(buffer)) == 0) {
       log_message("Invalid value for POOL_SIZE", 'w', 1);
       exit(-1);
-    } else if (line == 2 && (*transactions_per_block = atoi(buffer)) == 0) {
+    } else if (line == 2 && (*transactions_per_block = convert_to_int(buffer)) == 0) {
       log_message("Invalid value for TRANSACTIONS_PER_BLOCK", 'w', 1);
       exit(-1);
-    } else if (line == 3 && (*blockchain_blocks = atoi(buffer)) == 0) {
+    } else if (line == 3 && (*blockchain_blocks = convert_to_int(buffer)) == 0) {
       log_message("Invalid value for BLOCKCHAIN_BLOCKS", 'w', 1);
       exit(-1);
     }
@@ -97,7 +100,7 @@ void load_config(int *num_miners, int *pool_size, int *transactions_per_block, i
   // Assign a value to the TRANSACTION_POOL_SIZE variable
   // -- If there is a custom value in the file, assign that value
   if (fgets(buffer, BUFFER_SIZE, config_file) != NULL) {
-    if ((*transaction_pool_size = atoi(buffer)) == 0) {
+    if ((*transaction_pool_size = convert_to_int(buffer)) == 0) {
       log_message("Invalid value for TRANSACTION_POOL_SIZE", 'w', 1);
       exit(-1);
     }
@@ -107,4 +110,24 @@ void load_config(int *num_miners, int *pool_size, int *transactions_per_block, i
     *transaction_pool_size = 10000;
 
   fclose(config_file);
+}
+
+
+/*
+  Auxiliary function to convert a number in the string format to an integer
+*/
+int convert_to_int(char *str) {
+  int res = 0;
+  int len = strlen(str);
+  int mult = 1;
+  for (int i = len-1; i >= 0; i--) {
+    int cur_digit = str[i] - '0';
+    if (cur_digit < 0 || cur_digit > 9)
+      return 0;
+    else {
+      res += cur_digit * mult;
+      mult *= 10;
+    }
+  }
+  return res;
 }
