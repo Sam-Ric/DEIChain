@@ -17,9 +17,16 @@
 
 
 void* miner_routine(void* miner_id) {
+  // Thread initialization
   int id = *((int*)miner_id);
   char msg[100];
-  sprintf(msg, "[Miner] Thread %d initialized!", id);
+  sprintf(msg, "[Miner] Thread %d initialized", id);
+  log_message(msg, 'r', DEBUG);
+
+  /* ---- Thread Code ---- */
+
+  // Thread initialization
+  sprintf(msg, "[Miner] Thread %d terminated", id);
   log_message(msg, 'r', DEBUG);
   pthread_exit(NULL);
 }
@@ -31,10 +38,10 @@ void* miner_routine(void* miner_id) {
   a PoW step.
 */
 void miner(int num_miners) {
+  // Process initialization
   pthread_t thread_id[num_miners];
   int miner_id[num_miners];
   char msg[100];
-
   sprintf(msg, "[Miner] Process initialized (parent PID -> %d)", getppid());
   log_message(msg, 'r', DEBUG);
   
@@ -42,7 +49,7 @@ void miner(int num_miners) {
   for (int i = 0; i < num_miners; i++) {
     miner_id[i] = i + 1;
     if (pthread_create(&thread_id[i], NULL, miner_routine, &miner_id[i]) != 0) {
-      sprintf(msg, "Error creating miner thread %d", miner_id[i]);
+      sprintf(msg, "[Miner] Error creating miner thread %d", miner_id[i]);
       log_message(msg, 'w', 1);
       exit(-1);
     }
@@ -51,9 +58,12 @@ void miner(int num_miners) {
   // Wait for the threads to finish running
   for (int i = 0; i < num_miners; i++) {
     if (pthread_join(thread_id[i], NULL) != 0) {
-      sprintf(msg, "Error joining miner thread %d", miner_id[i]);
+      sprintf(msg, "[Miner] Error joining miner thread %d", miner_id[i]);
       log_message(msg, 'w', 1);
       exit(-1);
     }
   }
+
+  // Process termination
+  log_message("[Miner] Process terminated", 'r', 1);
 }

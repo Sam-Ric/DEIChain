@@ -12,18 +12,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
+#include <sys/ipc.h>
+#include <sys/wait.h>
 
 #include "utils.h"
 
 #define BUFFER_SIZE 100
-
-
-/*
-  Perform the cleanup of the IPC mechanisms
-*/
-void cleanup() {
-
-}
 
 /*
   Function to log a message to the log file and, optionally, on the console
@@ -70,6 +65,7 @@ void load_config(int *num_miners, int *pool_size, int *transactions_per_block, i
     exit(-1);
   }
 
+  // Parse each line of the configuration file
   int line = 0;
   while (line < 4) {
     if (fgets(buffer, BUFFER_SIZE, config_file) == NULL) {
@@ -80,7 +76,6 @@ void load_config(int *num_miners, int *pool_size, int *transactions_per_block, i
     buffer[strcspn(buffer, "\n")] = '\0';   // Remove the '\n' character
     
     // Assign the read value to the correct variable
-    printf("[DEBUG] num_miners = %d\n", convert_to_int(buffer));
     if (line == 0 && (*num_miners = convert_to_int(buffer)) == 0) {
       log_message("Invalid value for NUM_MINERS", 'w', 1);
       exit(-1);
@@ -105,7 +100,7 @@ void load_config(int *num_miners, int *pool_size, int *transactions_per_block, i
       exit(-1);
     }
   }
-  // Else, use the default value of 10000
+  // -- Else, use the default value of 10000
   else
     *transaction_pool_size = 10000;
 
