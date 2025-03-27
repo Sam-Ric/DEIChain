@@ -12,8 +12,10 @@
 #include <semaphore.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #include "utils.h"
+#include "structs.h"
 #include "miner.h"
 #include "statistics.h"
 #include "validator.h"
@@ -27,7 +29,7 @@
 */
 
 // Shared memory IDs
-int transactions_pool_id;
+int transaction_pool_id;
 int blockchain_ledger_id;
 
 // Process IDs
@@ -37,23 +39,37 @@ pid_t process_id[3];
 /*
   Perform the cleanup of the IPC mechanisms and any active processes
 */
-/*
-void cleanup() {
-  // Kill any active processes
-  int i = 0;
-  int lim = sizeof(process_id)/sizeof(pid_t);
-  while (i < lim) {
-    kill(process_id[i++], SIGKILL);
+void signals(int signum) {
+  if (signum == SIGINT) {
+    printf("\n[DEBUG] ^C detected. Closing...\n");
+    // Kill any active processes
+    int i = 0;
+    int lim = sizeof(process_id)/sizeof(pid_t);
+    while (i < lim) {
+      kill(process_id[i++], SIGKILL);
+    }
+    while (wait(NULL) != -1);
+    printf("[DEBUG] All child processes have been terminated\n");
+
+    // Detaching shared memory
+    if (transaction_pool_id >= 0)
+      shmctl(transaction_pool_id, IPC_RMID, NULL);
+    if (blockchain_ledger_id >= 0)
+      shmctl(blockchain_ledger_id, IPC_RMID, NULL);
+
+    log_message("All resources have been released and processes terminated", 'r', 1);
+    exit(0);
   }
-  while (wait(NULL) != -1);
 }
-*/
 
 int main() {
   // Process initialization
   char msg[100];  // Variable use to temporarily store a message to be logged
   sprintf(msg, "[Controller] Process initialized (PID -> %d)", getpid());
   log_message(msg, 'r', DEBUG);
+
+  // Handle ^C signal
+  signal(SIGINT, signals);
 
   // Control variables
   int num_miners;
@@ -79,18 +95,19 @@ int main() {
   // Setting up the IPC mechanisms
 
   // Shared memory
-  /*
-  // -- Create the Transactions Pool
-  if ((transactions_pool_id = shmget(IPC_PRIVATE, TODO -> transaction size, IPC_CREAT | 0766)) < 0) {
+  // -- Create the Transaction Pool
+  if ((transaction_pool_id = shmget(IPC_PRIVATE, sizeof(TransactionPool), IPC_CREAT | 0766)) < 0) {
     log_message("[Controller] Error creating the Transactions Pool (Shared Memory)", 'w', 1);
     exit(-1);
   }
+  log_message("[Controller] Transaction Pool created (shared memory)", 'r', DEBUG);
+
   // -- Create the Blockchain Ledger
-  if ((blockchain_ledger_id = shmget(IPC_PRIVATE,  TODO -> blockchain ledger size, IPC_CREAT | 0766)) < 0) {
+  if ((blockchain_ledger_id = shmget(IPC_PRIVATE, sizeof(BlockchainLedger), IPC_CREAT | 0766)) < 0) {
     log_message("[Controller] Error creating the Blockchain Ledger", 'w', 1);
     exit(-1);
   }
-  */
+  log_message("[Controller] Blockchain Ledger created (shared memory)", 'r', DEBUG);
 
   // Semaphores
 
@@ -120,6 +137,11 @@ int main() {
   } else if (process_id[2] < 0)
     log_message("[Controller] Could not create the Statistics process", 'w', 1);
     
+  while (1) {
+    printf("[Controller] Running...\n");
+    sleep(2);
+  }
+  /*
   // Wait for the processes to finish (Temporary approach)
   for (int i = 0; i < 3; i++)
     wait(NULL);
@@ -127,5 +149,6 @@ int main() {
 
   // Process termination
   log_message("[Controller] Process terminated", 'r', 1);
+  */
   return 0;
 }

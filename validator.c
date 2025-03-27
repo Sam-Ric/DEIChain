@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "utils.h"
 #include "validator.h"
@@ -19,7 +20,14 @@ void validator() {
   sprintf(msg, "[Validator] Process initialized (parent PID -> %d)", getppid());
   log_message(msg, 'r', DEBUG);
 
+  // Ignore ^C signal
+  signal(SIGINT, SIG_IGN);
+
   /* ---- Validator Code ---- */
+  while (1) {
+    printf("[Validator] Running...\n");
+    sleep(2);
+  }
 
   // Process termination
   log_message("[Validator] Process terminated", 'r', 1);

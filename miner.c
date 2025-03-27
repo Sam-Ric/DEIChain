@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "utils.h"
 #include "miner.h"
@@ -44,6 +45,9 @@ void miner(int num_miners) {
   char msg[100];
   sprintf(msg, "[Miner] Process initialized (parent PID -> %d)", getppid());
   log_message(msg, 'r', DEBUG);
+
+  // Ignore ^C signal
+  signal(SIGINT, SIG_IGN);
   
   // Create the miner threads
   for (int i = 0; i < num_miners; i++) {
@@ -62,6 +66,11 @@ void miner(int num_miners) {
       log_message(msg, 'w', 1);
       exit(-1);
     }
+  }
+
+  while (1) {
+    printf("[Miner] Running...\n");
+    sleep(2);
   }
 
   // Process termination
