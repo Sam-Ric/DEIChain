@@ -17,14 +17,14 @@ typedef struct {
   Block structure
 */
 typedef struct {
-
+  int dummy_attribute;
 } Block;
 
 /*
   Blockchain Ledger structure
 */
 typedef struct {
-  int dummy_argument;
+  int dummy_attribute;
 } BlockchainLedger;
 
 /*
@@ -37,14 +37,24 @@ typedef struct {
   int receiver_id;
   int value;
   Timestamp timestamp;
-} Transaction;
+} Tx;
+
+
+/*
+  Transaction Pool Node structure
+*/
+typedef struct {
+  int empty;
+  int age;
+  Tx *transaction;
+} TxPoolNode;
 
 /*
   Transaction Pool structure
 */
 typedef struct {
   int current_block_id;
-  Transaction *slots;
-} TransactionPool;
+  TxPoolNode *transactions_pending_set;
+} TxPool;
 
 #endif

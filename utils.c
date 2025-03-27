@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <sys/ipc.h>
 #include <sys/wait.h>
+#include <semaphore.h>
 
 #include "utils.h"
 
@@ -24,6 +25,9 @@
   Function to log a message to the log file and, optionally, on the console
 */
 void log_message(char *msg, char msg_type, int verbose) {
+  // Open the named semaphore
+  sem_t *log_mutex = sem_open("LOG_MUTEX", 0);
+
   // Get the current date and time
   time_t current_time;
   time(&current_time);
@@ -37,14 +41,19 @@ void log_message(char *msg, char msg_type, int verbose) {
   int month = local->tm_mon + 1;    // month (goes from 0 to 11)
   int year = local->tm_year + 1900;  // year since 1900
 
-  // Open the log file for writing
+  // Log the message to the log file
+  sem_wait(log_mutex);
+
+  // -- Open the log file for writing
   FILE *log_file = fopen("DEIChain_log.cfg", "a");
   
-  // Write the log message to the log file
+  // -- Write the log message to the log file
   fprintf(log_file, "[%02d/%02d/%d - %02d:%02d:%02d] %s\n", day, month, year, hours, minutes, seconds, msg);
+  fflush(log_file);
   fclose(log_file);
+  sem_post(log_mutex);
 
-  // Print the message on the screen
+  // -- Print the message on the screen
   if (verbose == 1 && msg_type == 'r')
     printf("\x1b[33m[*]\x1b[0m %s\n", msg);
   if (verbose == 1 && msg_type == 'w')

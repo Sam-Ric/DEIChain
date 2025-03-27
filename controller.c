@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #include "utils.h"
 #include "structs.h"
@@ -28,20 +29,22 @@
   will act as the Controller process
 */
 
+// Semaphores and mutexes
+sem_t *log_mutex;
+
 // Shared memory IDs
-int transaction_pool_id;
+int tx_pool_id;
 int blockchain_ledger_id;
 
 // Process IDs
 pid_t process_id[3];
-
 
 /*
   Perform the cleanup of the IPC mechanisms and any active processes
 */
 void signals(int signum) {
   if (signum == SIGINT) {
-    printf("\n[DEBUG] ^C detected. Closing...\n");
+    log_message("[Controller] ^C detected. Closing.", 'r', 1);
     // Kill any active processes
     int i = 0;
     int lim = sizeof(process_id)/sizeof(pid_t);
@@ -49,20 +52,28 @@ void signals(int signum) {
       kill(process_id[i++], SIGKILL);
     }
     while (wait(NULL) != -1);
-    printf("[DEBUG] All child processes have been terminated\n");
 
     // Detaching shared memory
-    if (transaction_pool_id >= 0)
-      shmctl(transaction_pool_id, IPC_RMID, NULL);
+    if (tx_pool_id >= 0)
+      shmctl(tx_pool_id, IPC_RMID, NULL);
     if (blockchain_ledger_id >= 0)
       shmctl(blockchain_ledger_id, IPC_RMID, NULL);
 
-    log_message("All resources have been released and processes terminated", 'r', 1);
+    // Releasing semaphores and mutexes
+    sem_post(log_mutex);
+    sem_close(log_mutex);
+    sem_unlink("LOG_MUTEX");
+
     exit(0);
   }
 }
 
 int main() {
+
+  // Setting up a mutex to handle access to the log file
+  sem_unlink("LOG_MUTEX");
+  log_mutex = sem_open("LOG_MUTEX", O_CREAT | O_EXCL, 0700, 1);
+
   // Process initialization
   char msg[100];  // Variable use to temporarily store a message to be logged
   sprintf(msg, "[Controller] Process initialized (PID -> %d)", getpid());
@@ -74,33 +85,40 @@ int main() {
   // Control variables
   int num_miners;
   int pool_size;
-  int transactions_per_block;
+  int tx_per_block;
   int blockchain_blocks;
-  int transaction_pool_size;
+  int tx_pool_size;
 
   // Reading the configuration file, initializing the variables
-  load_config(&num_miners, &pool_size, &transactions_per_block, &blockchain_blocks, &transaction_pool_size);
+  load_config(&num_miners, &pool_size, &tx_per_block, &blockchain_blocks, &tx_pool_size);
   
   sprintf(msg, "[Controller] Loaded num_miners = %d", num_miners);
   log_message(msg, 'r', DEBUG);
   sprintf(msg, "[Controller] Loaded pool_size = %d", pool_size);
   log_message(msg, 'r', DEBUG);
-  sprintf(msg, "[Controller] Loaded transactions_per_block = %d", transactions_per_block);
+  sprintf(msg, "[Controller] Loaded transactions_per_block = %d", tx_per_block);
   log_message(msg, 'r', DEBUG);
   sprintf(msg, "[Controller] Loaded blockchain_blocks = %d", blockchain_blocks);
   log_message(msg, 'r', DEBUG);
-  sprintf(msg, "[Controller] Loaded transaction_pool_size = %d", transaction_pool_size);
+  sprintf(msg, "[Controller] Loaded transaction_pool_size = %d", tx_pool_size);
   log_message(msg, 'r', DEBUG);
 
-  // Setting up the IPC mechanisms
-
   // Shared memory
-  // -- Create the Transaction Pool
-  if ((transaction_pool_id = shmget(IPC_PRIVATE, sizeof(TransactionPool), IPC_CREAT | 0766)) < 0) {
-    log_message("[Controller] Error creating the Transactions Pool (Shared Memory)", 'w', 1);
+  // -- Create the Transaction Pool's shared memory
+  size_t size = sizeof(TxPool) + sizeof(TxPoolNode) * tx_pool_size;
+  if ((tx_pool_id = shmget(IPC_PRIVATE, size, IPC_CREAT | 0766)) < 0) {
+    log_message("[Controller] Error creating the Transaction Pool (Shared Memory)", 'w', 1);
     exit(-1);
   }
   log_message("[Controller] Transaction Pool created (shared memory)", 'r', DEBUG);
+
+  // -- Attach the Transaction Pool to the shared memory
+  TxPool *tx_pool;
+  if ((tx_pool = (TxPool*)shmat(tx_pool_id, NULL, 0)) < 0) {
+		log_message("[Controller] Error attaching the Transaction Pool (Shared Memory)", 'w', 1);
+		exit(-1);
+	}
+  log_message("[Controller] Transaction Pool attached to shared memory", 'r', DEBUG);
 
   // -- Create the Blockchain Ledger
   if ((blockchain_ledger_id = shmget(IPC_PRIVATE, sizeof(BlockchainLedger), IPC_CREAT | 0766)) < 0) {
@@ -108,8 +126,6 @@ int main() {
     exit(-1);
   }
   log_message("[Controller] Blockchain Ledger created (shared memory)", 'r', DEBUG);
-
-  // Semaphores
 
   // Message queues
 
