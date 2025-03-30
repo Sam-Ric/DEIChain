@@ -45,7 +45,7 @@ void log_message(char *msg, char msg_type, int verbose) {
   sem_wait(log_mutex);
 
   // -- Open the log file for writing
-  FILE *log_file = fopen("DEIChain_log.cfg", "a");
+  FILE *log_file = fopen("DEIChain_log.txt", "a");
   if (log_file == NULL) {
     printf("\x1b[31m[!]\x1b[0m [Controller] Error opening the log file\n");
     exit(-1);
@@ -93,7 +93,7 @@ void load_config(int *num_miners, int *tx_pool_size, int *transactions_per_block
       log_message("Invalid value for NUM_MINERS", 'w', 1);
       exit(-1);
     } else if (line == 1 && (*tx_pool_size = convert_to_int(buffer)) == 0) {
-      log_message("Invalid value for POOL_SIZE", 'w', 1);
+      log_message("Invalid value for TX_POOL_SIZE", 'w', 1);
       exit(-1);
     } else if (line == 2 && (*transactions_per_block = convert_to_int(buffer)) == 0) {
       log_message("Invalid value for TRANSACTIONS_PER_BLOCK", 'w', 1);

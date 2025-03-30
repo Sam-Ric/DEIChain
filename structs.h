@@ -1,3 +1,10 @@
+/*
+  DEIChain - Structs Header File
+  by
+    Samuel Riça (2023206471)
+    Diogo Santos (2023211097)
+*/
+
 #ifndef STRUCTS_H
 #define STRUCTS_H
 

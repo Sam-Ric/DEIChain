@@ -151,11 +151,12 @@ int main() {
   } else if (process_id[2] < 0)
     log_message("[Controller] Could not create the Statistics process", 'w', 1);
     
+  // Simulated workload
   while (1) {
     printf("[Controller] Running...\n");
     sleep(2);
   }
-  /*
+  
   // Wait for the processes to finish (Temporary approach)
   for (int i = 0; i < 3; i++)
     wait(NULL);
@@ -163,6 +164,6 @@ int main() {
 
   // Process termination
   log_message("[Controller] Process terminated", 'r', 1);
-  */
+  
   return 0;
 }
