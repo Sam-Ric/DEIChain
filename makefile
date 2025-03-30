@@ -8,7 +8,7 @@ OBJS2 = tx_gen.o utils.o
 all:	${PROG1} ${PROG2}
 
 clean:
-	rm ${OBJS1} ${OBJS2}
+	rm -f ${OBJS1} ${OBJS2}
 
 ${PROG1}:	${OBJS1}
 	${CC} ${FLAGS} ${OBJS1} -o $@

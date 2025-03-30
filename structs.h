@@ -5,9 +5,6 @@
   Timestamp structure
 */
 typedef struct {
-  int day;
-  int month;
-  int year;
   int hour;
   int min;
   int sec;

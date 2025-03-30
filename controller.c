@@ -44,6 +44,7 @@ pid_t process_id[3];
 */
 void signals(int signum) {
   if (signum == SIGINT) {
+    printf("\n");
     log_message("[Controller] ^C detected. Closing.", 'r', 1);
     // Kill any active processes
     int i = 0;
@@ -84,23 +85,20 @@ int main() {
 
   // Control variables
   int num_miners;
-  int pool_size;
+  int tx_pool_size;
   int tx_per_block;
   int blockchain_blocks;
-  int tx_pool_size;
 
   // Reading the configuration file, initializing the variables
-  load_config(&num_miners, &pool_size, &tx_per_block, &blockchain_blocks, &tx_pool_size);
+  load_config(&num_miners, &tx_pool_size, &tx_per_block, &blockchain_blocks);
   
   sprintf(msg, "[Controller] Loaded num_miners = %d", num_miners);
   log_message(msg, 'r', DEBUG);
-  sprintf(msg, "[Controller] Loaded pool_size = %d", pool_size);
+  sprintf(msg, "[Controller] Loaded tx_pool_size = %d", tx_pool_size);
   log_message(msg, 'r', DEBUG);
   sprintf(msg, "[Controller] Loaded transactions_per_block = %d", tx_per_block);
   log_message(msg, 'r', DEBUG);
   sprintf(msg, "[Controller] Loaded blockchain_blocks = %d", blockchain_blocks);
-  log_message(msg, 'r', DEBUG);
-  sprintf(msg, "[Controller] Loaded transaction_pool_size = %d", tx_pool_size);
   log_message(msg, 'r', DEBUG);
 
   // Shared memory

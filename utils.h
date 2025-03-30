@@ -21,7 +21,7 @@ void log_message(char* message, char msg_type, int verbose);
   Function to load the data written on the configuration file and initialize
   the required variables
 */
-void load_config(int *num_miners, int *pool_size, int *transactions_per_block, int *blockchain_blocks, int *transaction_pool_size);
+void load_config(int *num_miners, int *tx_pool_size, int *transactions_per_block, int *blockchain_blocks);
 
 /*
   Auxiliary function to convert a number written as a string to an integer

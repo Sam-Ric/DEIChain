@@ -46,6 +46,10 @@ void log_message(char *msg, char msg_type, int verbose) {
 
   // -- Open the log file for writing
   FILE *log_file = fopen("DEIChain_log.cfg", "a");
+  if (log_file == NULL) {
+    printf("\x1b[31m[!]\x1b[0m [Controller] Error opening the log file\n");
+    exit(-1);
+  }
   
   // -- Write the log message to the log file
   fprintf(log_file, "[%02d/%02d/%d - %02d:%02d:%02d] %s\n", day, month, year, hours, minutes, seconds, msg);
@@ -65,7 +69,7 @@ void log_message(char *msg, char msg_type, int verbose) {
   Initializes the variables passed as arguments with the values from the
   configuration file 'config.cfg'
 */
-void load_config(int *num_miners, int *pool_size, int *transactions_per_block, int *blockchain_blocks, int *transaction_pool_size) {
+void load_config(int *num_miners, int *tx_pool_size, int *transactions_per_block, int *blockchain_blocks) {
   // Open the file
   char buffer[BUFFER_SIZE];
   FILE *config_file;
@@ -88,7 +92,7 @@ void load_config(int *num_miners, int *pool_size, int *transactions_per_block, i
     if (line == 0 && (*num_miners = convert_to_int(buffer)) == 0) {
       log_message("Invalid value for NUM_MINERS", 'w', 1);
       exit(-1);
-    } else if (line == 1 && (*pool_size = convert_to_int(buffer)) == 0) {
+    } else if (line == 1 && (*tx_pool_size = convert_to_int(buffer)) == 0) {
       log_message("Invalid value for POOL_SIZE", 'w', 1);
       exit(-1);
     } else if (line == 2 && (*transactions_per_block = convert_to_int(buffer)) == 0) {
@@ -100,18 +104,6 @@ void load_config(int *num_miners, int *pool_size, int *transactions_per_block, i
     }
     line++;
   }
-
-  // Assign a value to the TRANSACTION_POOL_SIZE variable
-  // -- If there is a custom value in the file, assign that value
-  if (fgets(buffer, BUFFER_SIZE, config_file) != NULL) {
-    if ((*transaction_pool_size = convert_to_int(buffer)) == 0) {
-      log_message("Invalid value for TRANSACTION_POOL_SIZE", 'w', 1);
-      exit(-1);
-    }
-  }
-  // -- Else, use the default value of 10000
-  else
-    *transaction_pool_size = 10000;
 
   fclose(config_file);
 }

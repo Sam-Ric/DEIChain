@@ -8,8 +8,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "utils.h"
+#include "structs.h"
 
 #define DEBUG 1
 
@@ -45,6 +47,29 @@ int main(int argc, char *argv[]) {
   log_message(msg, 'r', DEBUG);
 
   /* ---- Transaction Generator Code ---- */
+  int increment = 1;
+  while (1) {
+    // Dummy transaction
+    printf("    [Tx Gen] [PID %d] NEW TRANSACTION\n", getpid());
+    printf("    [Tx Gen] [PID %d] Transaction ID = %d\n", getpid(), getpid()+(increment++));
+    printf("    [Tx Gen] [PID %d] Reward = %d\n", getpid(), reward);
+    printf("    [Tx Gen] [PID %d] senderID = %d\n", getpid(), getpid());
+    printf("    [Tx Gen] [PID %d] receiverID = ...\n", getpid());
+    printf("    [Tx Gen] [PID %d] Value = %d\n", getpid(), rand()%100+1);
+    
+    // Get the current date and time
+    time_t current_time;
+    time(&current_time);
+    struct tm *local = localtime(&current_time);
+
+    Timestamp timestamp;
+    timestamp.hour = local->tm_hour;
+    timestamp.min = local->tm_min;
+    timestamp.sec = local->tm_sec;
+
+    printf("    [Tx Gen] [PID %d] Timestamp = %d/%d/%d\n", getpid(), timestamp.hour, timestamp.min, timestamp.sec);
+    sleep(sleeptime);
+  }
 
   // Process termination
   sprintf(msg, "[Tx Gen] [PID %d] Process terminated", getpid());
