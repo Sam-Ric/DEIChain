@@ -48,6 +48,8 @@ void miner(int num_miners) {
 
   // Ignore ^C signal
   signal(SIGINT, SIG_IGN);
+  // Ignore ^T signal
+  signal(SIGUSR1, SIG_IGN);
   
   // Create the miner threads
   for (int i = 0; i < num_miners; i++) {

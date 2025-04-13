@@ -10,6 +10,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <semaphore.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -23,12 +24,6 @@
 
 #define DEBUG 1
 
-/*
-  DISCLAIMER:
-  The process created when the executable is run by the user
-  will act as the Controller process
-*/
-
 // Semaphores and mutexes
 sem_t *log_mutex;
 
@@ -37,28 +32,43 @@ int tx_pool_id;
 int blockchain_ledger_id;
 
 // Process IDs
-pid_t process_id[3];
+pid_t miner_pid, statistics_pid, validator_pid[3];
+
+// Validator Manager's variables
+struct ThreadArgs {
+  TxPoolNode *tx_pool;
+  int tx_pool_size;
+};
+
+int stop_validator_manager;
 
 /*
   Perform the cleanup of the IPC mechanisms and any active processes
 */
 void signals(int signum) {
+  // Perform cleanup and exit the application gracefully
   if (signum == SIGINT) {
     printf("\n");
     log_message("[Controller] ^C detected. Closing.", 'r', 1);
     // Kill any active processes
-    int i = 0;
-    int lim = sizeof(process_id)/sizeof(pid_t);
-    while (i < lim) {
-      kill(process_id[i++], SIGKILL);
+    kill(miner_pid, SIGKILL);
+    kill(statistics_pid, SIGKILL);
+    stop_validator_manager = 1;
+    for (int i = 0; i < 3; i++) {
+      if (validator_pid[i] != 0)
+        kill(validator_pid[i], SIGKILL);
     }
     while (wait(NULL) != -1);
 
-    // Detaching shared memory
-    if (tx_pool_id >= 0)
+    // Detaching and removing shared memory
+    if (tx_pool_id >= 0) {
+      shmdt(&tx_pool_id);
       shmctl(tx_pool_id, IPC_RMID, NULL);
-    if (blockchain_ledger_id >= 0)
+    }
+    if (blockchain_ledger_id >= 0) {
+      shmdt(&blockchain_ledger_id);
       shmctl(blockchain_ledger_id, IPC_RMID, NULL);
+    }
 
     // Releasing semaphores and mutexes
     sem_post(log_mutex);
@@ -67,8 +77,76 @@ void signals(int signum) {
 
     exit(0);
   }
+
+  // Calculating and printing statistics
+  if (signum == SIGUSR1) {
+    statistics();
+  }
 }
 
+/*
+  Thread routine to manage the number of Validator threads
+*/
+void* manage_validation(void *void_args) {
+  log_message("[Controller] Validator Manager launched successfully", 'r', DEBUG);
+  struct ThreadArgs args = *((struct ThreadArgs*)void_args);
+  TxPoolNode *tx_pool = args.tx_pool;
+  int size = args.tx_pool_size;
+
+  // Flags
+  int aux1 = 0, aux2 = 0;
+
+  // Calculate the occupancy of the transaction pool (TODO -> implement synchronization)
+  while (!stop_validator_manager) {
+    int occupated_blocks = 0;
+    for (int i = 0; i < size; i++) {
+      if (tx_pool[i].empty == 0)
+        occupated_blocks++;
+    }
+    int occupancy = (int)(occupated_blocks / size * 100);
+    // If the pool occupancy falls below 40%, terminate any additional validators
+    if (occupancy < 40 && (aux1 == 1 || aux2 == 1)) {
+      log_message("[Controller] [Validator Manager] Occupancy dropped below 40%. Terminating the additional Validator processes", 'r', DEBUG);
+      if (aux1 == 1) {
+        kill(validator_pid[1], SIGTERM);
+        aux1 = 0;
+        validator_pid[1] = 0;
+      }
+      if (aux2 == 1) {
+        kill(validator_pid[2], SIGTERM);
+        aux2 = 0;
+        validator_pid[2] = 0;
+      }
+    }
+    // If the occupancy reaches 60%, launch an auxiliary Validator
+    if (occupancy >= 60 && aux1 == 0) {
+      log_message("[Controller] [Validator Manager] 60% occupancy reached. Launching an additional Validator", 'r', DEBUG);
+      aux1 = 1;
+      if ((validator_pid[1] = fork()) == 0) {
+        validator();
+        exit(0);
+      }
+      if (validator_pid[1] < 0)
+        log_message("[Controller] Error creating the 1st auxiliary validator", 'w', 1);
+    }
+    // If the occupancy reaches 80%, launch another auxiliary Validator
+    else if (occupancy >= 80 && aux2 == 0) {
+      log_message("[Controller] [Validator Manager] 80% occupancy reached. Launching an additional Validator", 'r', DEBUG);
+      aux2 = 1;
+      if ((validator_pid[2] = fork()) == 0) {
+        validator();
+        exit(0);
+      }
+      if (validator_pid[2] < 0)
+      log_message("[Controller] Error creating the 2nd auxiliary validator", 'w', 1);
+    }
+  }
+  pthread_exit(NULL);
+}
+
+/*
+  Main function
+*/
 int main() {
 
   // Setting up a mutex to handle access to the log file
@@ -82,6 +160,9 @@ int main() {
 
   // Handle ^C signal
   signal(SIGINT, signals);
+
+  // Handle ^T signal
+  signal(SIGUSR1, signals);
 
   // Control variables
   int num_miners;
@@ -103,7 +184,7 @@ int main() {
 
   // Shared memory
   // -- Create the Transaction Pool's shared memory
-  size_t size = sizeof(TxPool) + sizeof(TxPoolNode) * tx_pool_size;
+  size_t size = sizeof(TxPoolNode) * tx_pool_size;
   if ((tx_pool_id = shmget(IPC_PRIVATE, size, IPC_CREAT | 0766)) < 0) {
     log_message("[Controller] Error creating the Transaction Pool (Shared Memory)", 'w', 1);
     exit(-1);
@@ -111,19 +192,40 @@ int main() {
   log_message("[Controller] Transaction Pool created (shared memory)", 'r', DEBUG);
 
   // -- Attach the Transaction Pool to the shared memory
-  TxPool *tx_pool;
-  if ((tx_pool = (TxPool*)shmat(tx_pool_id, NULL, 0)) < 0) {
+  TxPoolNode *tx_pool;
+  if ((tx_pool = (TxPoolNode*)shmat(tx_pool_id, NULL, 0)) < 0) {
 		log_message("[Controller] Error attaching the Transaction Pool (Shared Memory)", 'w', 1);
 		exit(-1);
 	}
   log_message("[Controller] Transaction Pool attached to shared memory", 'r', DEBUG);
 
+  // -- Initialize the Transaction Pool elements
+  for (int i = 0; i < tx_pool_size; i++) {
+    tx_pool[i].empty = 1;
+    tx_pool[i].age = 0;
+  }
+  
+
   // -- Create the Blockchain Ledger
-  if ((blockchain_ledger_id = shmget(IPC_PRIVATE, sizeof(BlockchainLedger), IPC_CREAT | 0766)) < 0) {
+  size = (sizeof(TxBlock) + sizeof(Tx) * tx_per_block) * blockchain_blocks;
+  if ((blockchain_ledger_id = shmget(IPC_PRIVATE, size, IPC_CREAT | 0766)) < 0) {
     log_message("[Controller] Error creating the Blockchain Ledger", 'w', 1);
     exit(-1);
   }
   log_message("[Controller] Blockchain Ledger created (shared memory)", 'r', DEBUG);
+
+  // -- Attach the Blockchain Ledger to the shared memory
+  TxBlock *blockchain_ledger;
+  if ((blockchain_ledger = (TxBlock*)shmat(blockchain_ledger_id, NULL, 0)) < 0) {
+    log_message("[Controller] Error attaching the Blockchain Ledger (Shared Memory)", 'w', 1);
+    exit(-1);
+  }
+  log_message("[Controller] Blockchain Ledger attached to the shared memory", 'r', DEBUG);
+
+  // -- Map the Blockchain Ledger elements in shared memory
+  TxBlock *blocks;
+  Tx *transactions;
+  get_blockchain_mapping(blockchain_ledger, blockchain_blocks, &blocks, &transactions);
 
   // Message queues
 
@@ -131,25 +233,45 @@ int main() {
 
   // Creating the required processes
   // -- Miner process
-  if ((process_id[0] = fork()) == 0) {
+  if ((miner_pid = fork()) == 0) {
     miner(num_miners);
     exit(0);
-  } else if (process_id[0] < 0)
+  } else if (miner_pid < 0) {
     log_message("[Controller] Could not create the Miner process", 'w', 1);
+    exit(-1);
+  }
 
-  // -- Validator process
-  if ((process_id[1] = fork()) == 0) {
+  // -- Validator processes
+  // ---- Initialize the Validator PID's array
+  for (int i = 0; i < 3; i++)
+    validator_pid[i] = 0;
+  // ---- Create the first Validator process
+  if ((validator_pid[0] = fork()) == 0) {
     validator();
     exit(0);
-  } else if (process_id[1] < 0)
+  } else if (validator_pid[0] < 0) {
     log_message("[Controller] Could not create the Validator process", 'w', 1);
+    exit(-1);
+  }
+  // ---- Launch the thread to manage the transaction pool occupancy
+  pthread_t validator_manager_id;
+  struct ThreadArgs args;
+  args.tx_pool = tx_pool;
+  args.tx_pool_size = tx_pool_size;
+  stop_validator_manager = 0;
+  if (pthread_create(&validator_manager_id, NULL, manage_validation, (void*)&args) < 0) {
+    log_message("[Controller] Error launching the thread to manage validators", 'w', 1);
+    exit(-1);
+  }
  
   // -- Statistics process
-  if ((process_id[2] = fork()) == 0) {
+  if ((statistics_pid = fork()) == 0) {
     statistics();
     exit(0);
-  } else if (process_id[2] < 0)
+  } else if (statistics_pid < 0) {
     log_message("[Controller] Could not create the Statistics process", 'w', 1);
+    exit(-1);
+  }
     
   // Simulated workload
   while (1) {

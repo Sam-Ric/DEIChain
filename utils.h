@@ -11,6 +11,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "structs.h"
+
 /*
   Function to log a message to the log file and to the console, if the verbose
   option is enabled
@@ -27,5 +29,16 @@ void load_config(int *num_miners, int *tx_pool_size, int *transactions_per_block
   Auxiliary function to convert a number written as a string to an integer
 */
 int convert_to_int(char *str);
+
+/*
+  Auxiliary function to generate a timestamp
+*/
+Timestamp get_timestamp();
+
+/*
+  Auxiliary function to get the memory addresses of the blocks and the
+  respective transactions in shared memory
+*/
+void get_blockchain_mapping(TxBlock *blockchain_ledger, int blockchain_blocks, TxBlock **blocks, Tx **transactions);
 
 #endif

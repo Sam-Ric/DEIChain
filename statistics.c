@@ -22,6 +22,8 @@ void statistics() {
 
   // Ignore ^C signal
   signal(SIGINT, SIG_IGN);
+  // Ignore ^T signal
+  signal(SIGUSR1, SIG_IGN);
 
   /* ---- Statistics Code ---- */
   while (1) {

@@ -18,31 +18,24 @@ typedef struct {
 } Timestamp;
 
 /*
-  Block structure
-*/
-typedef struct {
-  int dummy_attribute;
-} Block;
-
-/*
-  Blockchain Ledger structure
-*/
-typedef struct {
-  int dummy_attribute;
-} BlockchainLedger;
-
-/*
   Transaction structure
 */
 typedef struct {
   int id;
   int reward;
-  int sender_id;
-  int receiver_id;
   int value;
   Timestamp timestamp;
 } Tx;
 
+/*
+  Block structure
+*/
+typedef struct {
+  int id;
+  char previous_block_hash[100];
+  Timestamp timestamp;
+  int nonce;
+} TxBlock;
 
 /*
   Transaction Pool Node structure
@@ -50,15 +43,17 @@ typedef struct {
 typedef struct {
   int empty;
   int age;
-  Tx *transaction;
+  Tx tx;
 } TxPoolNode;
 
 /*
-  Transaction Pool structure
+  PoW structure
 */
 typedef struct {
-  int current_block_id;
-  TxPoolNode *transactions_pending_set;
-} TxPool;
+  char hashing_algorithm[10];
+  char algorithm[10];
+  int reward;
+  int max_operations;
+} PoW;
 
 #endif

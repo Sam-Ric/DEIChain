@@ -22,6 +22,8 @@ void validator() {
 
   // Ignore ^C signal
   signal(SIGINT, SIG_IGN);
+  // Ignore ^T signal
+  signal(SIGUSR1, SIG_IGN);
 
   /* ---- Validator Code ---- */
   while (1) {

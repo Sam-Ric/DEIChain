@@ -18,6 +18,7 @@
 #include <semaphore.h>
 
 #include "utils.h"
+#include "structs.h"
 
 #define BUFFER_SIZE 100
 
@@ -27,6 +28,10 @@
 void log_message(char *msg, char msg_type, int verbose) {
   // Open the named semaphore
   sem_t *log_mutex = sem_open("LOG_MUTEX", 0);
+  if (log_mutex == SEM_FAILED) {
+    printf("\x1b[31m[!]\x1b[0m log_mutex not initialized yet. The Controller process has not been launched. Closing.\n");
+    exit(-1);
+  }
 
   // Get the current date and time
   time_t current_time;
@@ -126,4 +131,37 @@ int convert_to_int(char *str) {
     }
   }
   return res;
+}
+
+
+/*
+  Auxiliary function to generate a timestamp
+*/
+Timestamp get_timestamp() {
+  Timestamp res;
+
+  // Get the current date and time
+  time_t current_time;
+  time(&current_time);
+  struct tm *local = localtime(&current_time);
+  
+  res.hour = local->tm_hour;
+  res.min = local->tm_min;
+  res.sec = local->tm_sec;
+
+  return res;
+}
+
+
+/*
+  Auxiliary function to get the memory addresses of the blocks and the
+  respective transactions in shared memory
+*/
+void get_blockchain_mapping(TxBlock *blockchain_ledger, int blockchain_blocks, TxBlock **blocks, Tx **transactions) {
+  char *cursor = (char*)blockchain_ledger;
+  
+  *blocks = (TxBlock*)cursor;
+  cursor += sizeof(TxBlock) * blockchain_blocks;
+
+  *transactions = (Tx*)cursor;
 }
