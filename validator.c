@@ -17,7 +17,7 @@
 void validator() {
   // Process initialization
   char msg[100];
-  sprintf(msg, "[Validator] Process initialized (parent PID -> %d)", getppid());
+  sprintf(msg, "[Validator] Process initialized (PID -> %d | parent PID -> %d)", getpid(), getppid());
   log_message(msg, 'r', DEBUG);
 
   // Ignore ^C signal

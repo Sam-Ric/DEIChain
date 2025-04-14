@@ -13,6 +13,7 @@
 
 #include "utils.h"
 #include "miner.h"
+#include "structs.h"
 
 #define DEBUG 1
 
@@ -38,12 +39,12 @@ void* miner_routine(void* miner_id) {
   reading transactions, grouping them into blocks and performing
   a PoW step.
 */
-void miner(int num_miners) {
+void miner(int num_miners, struct MinerArgs args) {
   // Process initialization
   pthread_t thread_id[num_miners];
   int miner_id[num_miners];
   char msg[100];
-  sprintf(msg, "[Miner] Process initialized (parent PID -> %d)", getppid());
+  sprintf(msg, "[Miner] Process initialized (PID -> %d | parent PID -> %d)", getpid(), getppid());
   log_message(msg, 'r', DEBUG);
 
   // Ignore ^C signal

@@ -8,7 +8,9 @@
 #ifndef MINER_H
 #define MINER_H
 
+#include "structs.h"
+
 void* miner_routine(void*);
-void miner(int);
+void miner(int, struct MinerArgs);
 
 #endif

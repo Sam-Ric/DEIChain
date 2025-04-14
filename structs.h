@@ -56,4 +56,18 @@ typedef struct {
   int max_operations;
 } PoW;
 
+// Validator Manager's variables
+struct ThreadArgs {
+  TxPoolNode *tx_pool;
+  int tx_pool_size;
+};
+
+// Miner Shared Memory data
+struct MinerArgs {
+  TxPoolNode *tx_pool;
+  int tx_pool_size;
+  TxBlock *blocks;
+  Tx *transactions;
+};
+
 #endif

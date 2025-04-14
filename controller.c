@@ -26,6 +26,9 @@
 
 // Semaphores and mutexes
 sem_t *log_mutex;
+sem_t *tx_pool_mutex;
+sem_t *tx_pool_full;
+sem_t *tx_pool_empty;
 
 // Shared memory IDs
 int tx_pool_id;
@@ -33,12 +36,6 @@ int blockchain_ledger_id;
 
 // Process IDs
 pid_t miner_pid, statistics_pid, validator_pid[3];
-
-// Validator Manager's variables
-struct ThreadArgs {
-  TxPoolNode *tx_pool;
-  int tx_pool_size;
-};
 
 int stop_validator_manager;
 
@@ -98,12 +95,15 @@ void* manage_validation(void *void_args) {
 
   // Calculate the occupancy of the transaction pool (TODO -> implement synchronization)
   while (!stop_validator_manager) {
+    sem_wait(tx_pool_mutex);
     int occupated_blocks = 0;
     for (int i = 0; i < size; i++) {
+      printf("[Validator] block %2d status: %d\n", i, tx_pool[i].empty);
       if (tx_pool[i].empty == 0)
         occupated_blocks++;
     }
-    int occupancy = (int)(occupated_blocks / size * 100);
+    int occupancy = (int)((float)occupated_blocks / size * 100);
+    printf("[Controller] [Validator Manager] Current occupancy = %d\n", occupancy);
     // If the pool occupancy falls below 40%, terminate any additional validators
     if (occupancy < 40 && (aux1 == 1 || aux2 == 1)) {
       log_message("[Controller] [Validator Manager] Occupancy dropped below 40%. Terminating the additional Validator processes", 'r', DEBUG);
@@ -140,6 +140,8 @@ void* manage_validation(void *void_args) {
       if (validator_pid[2] < 0)
       log_message("[Controller] Error creating the 2nd auxiliary validator", 'w', 1);
     }
+    sem_post(tx_pool_mutex);
+    sleep(2);
   }
   pthread_exit(NULL);
 }
@@ -185,7 +187,8 @@ int main() {
   // Shared memory
   // -- Create the Transaction Pool's shared memory
   size_t size = sizeof(TxPoolNode) * tx_pool_size;
-  if ((tx_pool_id = shmget(IPC_PRIVATE, size, IPC_CREAT | 0766)) < 0) {
+  key_t tx_key = ftok("config.cfg", 'K');
+  if ((tx_pool_id = shmget(tx_key, size, IPC_CREAT | 0766)) < 0) {
     log_message("[Controller] Error creating the Transaction Pool (Shared Memory)", 'w', 1);
     exit(-1);
   }
@@ -198,6 +201,7 @@ int main() {
 		exit(-1);
 	}
   log_message("[Controller] Transaction Pool attached to shared memory", 'r', DEBUG);
+  printf("[Validator] shmget key: %d | shmid: %d\n", tx_key, tx_pool_id);
 
   // -- Initialize the Transaction Pool elements
   for (int i = 0; i < tx_pool_size; i++) {
@@ -227,14 +231,27 @@ int main() {
   Tx *transactions;
   get_blockchain_mapping(blockchain_ledger, blockchain_blocks, &blocks, &transactions);
 
+  // Semaphores and mutexes
+  sem_unlink("TX_POOL_MUTEX");
+  tx_pool_mutex = sem_open("TX_POOL_MUTEX", O_CREAT | O_EXCL, 0700, 1);
+  sem_unlink("TX_POOL_FULL");
+  tx_pool_full = sem_open("TX_POOL_FULL", O_CREAT | O_EXCL, 0700, tx_pool_size);
+  sem_unlink("TX_POOL_EMPTY");
+  tx_pool_empty = sem_open("TX_POOL_EMPTY", O_CREAT | O_EXCL, 0700, tx_pool_size);
+
   // Message queues
 
   // Named pipes
 
   // Creating the required processes
   // -- Miner process
+  struct MinerArgs args;
+  args.blocks = blocks;
+  args.transactions = transactions;
+  args.tx_pool = tx_pool;
+  args.tx_pool_size = tx_pool_size;
   if ((miner_pid = fork()) == 0) {
-    miner(num_miners);
+    miner(num_miners, args);
     exit(0);
   } else if (miner_pid < 0) {
     log_message("[Controller] Could not create the Miner process", 'w', 1);

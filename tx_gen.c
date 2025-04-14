@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/shm.h>
+#include <semaphore.h>
 
 #include "utils.h"
 #include "structs.h"
@@ -49,29 +51,81 @@ int main(int argc, char *argv[]) {
   sprintf(msg, "[Tx Gen] [PID %d] sleeptime = %d", getpid(), sleeptime);
   log_message(msg, 'r', DEBUG);
 
-  /* ---- Transaction Generator Code ---- */
-  int increment = 1;
+  // Open the Transaction Pool related semaphores
+  sem_t *tx_pool_mutex = sem_open("TX_POOL_MUTEX", 0);
+  if (tx_pool_mutex == SEM_FAILED) {
+    printf("\x1b[31m[!]\x1b[0m tx_pool_mutex not initialized yet. The Controller process has not been launched. Closing.\n");
+    exit(-1);
+  }
+  sem_t *tx_pool_full = sem_open("TX_POOL_FULL", 0);
+  if (tx_pool_full == SEM_FAILED) {
+    printf("\x1b[31m[!]\x1b[0m tx_pool_full not initialized yet. The Controller process has not been launched. Closing.\n");
+    exit(-1);
+  }
+  sem_t *tx_pool_empty = sem_open("TX_POOL_EMPTY", 0);
+  if (tx_pool_empty == SEM_FAILED) {
+    printf("\x1b[31m[!]\x1b[0m tx_pool_empty not initialized yet. The Controller process has not been launched. Closing.\n");
+    exit(-1);
+  }
+
+
+  // Transaction Pool 
+  // -- Access the already created shared memory
+  key_t tx_key = ftok("config.cfg", 'K');
+  int tx_pool_id;
+  if ((tx_pool_id = shmget(tx_key, 0, 0766)) < 0) {
+    printf("[TxGen] [PID %d] Error accessing the Transaction Pool (Shared Memory)\n", getpid());
+    exit(-1);
+  }
+  printf("[TxGen] [PID %d] Successfully accessed the Transaction Pool (Shared Memory)\n", getpid());
+
+  // -- Attach to the shared memory
+  TxPoolNode *tx_pool;
+  if ((tx_pool = (TxPoolNode*)shmat(tx_pool_id, NULL, 0)) < 0) {
+    printf("[TxGen] [PID %d] Error attaching to the Transaction Pool (Shared Memory)\n", getpid());
+    exit(-1);
+	}
+  printf("[TxGen] [PID %d] Successfully attached to the Transaction Pool\n", getpid());
+  printf("[TxGen] shmget key: %d | shmid: %d\n", tx_key, tx_pool_id);
+
+
+  // -- Get the size of Transaction Pool
+  struct shmid_ds buf;
+  shmctl(tx_pool_id, IPC_STAT, &buf);
+  int tx_pool_size = (int)buf.shm_segsz / sizeof(TxPoolNode);
+  printf("[TxGen] [PID %d] tx_pool_size = %d\n", getpid(), tx_pool_size);
+
+  int increment = 500;
   while (1) {
-    // Dummy transaction
-    printf("    [Tx Gen] [PID %d] NEW TRANSACTION\n", getpid());
-    printf("    [Tx Gen] [PID %d] Transaction ID = %d\n", getpid(), getpid()+(increment++));
-    printf("    [Tx Gen] [PID %d] Reward = %d\n", getpid(), reward);
-    printf("    [Tx Gen] [PID %d] senderID = %d\n", getpid(), getpid());
-    printf("    [Tx Gen] [PID %d] receiverID = ...\n", getpid());
-    printf("    [Tx Gen] [PID %d] Value = %d\n", getpid(), rand()%100+1);
-    
-    // Get the current date and time
-    time_t current_time;
-    time(&current_time);
-    struct tm *local = localtime(&current_time);
+    // Generate a transaction
+    printf("[Tx Gen] [PID %d] ===== NEW TRANSACTION =====\n", getpid());
+    int id = getpid() + (increment++);
+    printf("[Tx Gen] [PID %d] Transaction ID = %d\n", getpid(), id);
+    printf("[Tx Gen] [PID %d] Reward = %d\n", getpid(), reward);
+    int value = rand() % 100 + 1;
+    printf("[Tx Gen] [PID %d] Value = %d\n", getpid(), value);
+    Timestamp current_time = get_timestamp();
+    printf("[Tx Gen] [PID %d] Timestamp = %02d:%02d:%02d\n", getpid(), current_time.hour, current_time.min, current_time.sec);
 
-    Timestamp timestamp;
-    timestamp.hour = local->tm_hour;
-    timestamp.min = local->tm_min;
-    timestamp.sec = local->tm_sec;
+    // Write the transaction in shared memory
+    // -- Find the first empty slot in the Transaction Pool
+    sem_wait(tx_pool_empty);
+    sem_wait(tx_pool_mutex);
+    printf("[Tx Gen] [PID %d] Writing the transaction to the Transaction Pool...\n", getpid());
+    int i = 0;
+    while (tx_pool[i].empty != 1) {
+      i = (i + 1) % tx_pool_size;
+    }
+    tx_pool[i].tx.id = id;
+    tx_pool[i].tx.reward = reward;
+    tx_pool[i].tx.value = value;
+    tx_pool[i].tx.timestamp = current_time;
+    tx_pool[i].empty = 0;
+    sem_post(tx_pool_mutex);
+    sem_post(tx_pool_full);
+    printf("[Tx Gen] [PID %d] Transaction successfully written to the Transaction Pool.\n", getpid());
 
-    printf("    [Tx Gen] [PID %d] Timestamp = %d/%d/%d\n", getpid(), timestamp.hour, timestamp.min, timestamp.sec);
-    sleep(sleeptime);
+    sleep(2); // -- TODO: revert the sleep time back to 'sleeptime'
   }
 
   // Process termination

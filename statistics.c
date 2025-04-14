@@ -17,7 +17,7 @@
 void statistics() {
   // Process initialization
   char msg[100];
-  sprintf(msg, "[Statistics] Process initialized (parent PID -> %d)", getppid());
+  sprintf(msg, "[Statistics] Process initialized (PID -> %d | parent PID -> %d)", getpid(), getppid());
   log_message(msg, 'r', DEBUG);
 
   // Ignore ^C signal
