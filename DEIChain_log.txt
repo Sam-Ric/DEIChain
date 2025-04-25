@@ -1,235 +1,208 @@
-[14/04/2025 - 21:36:40] [Controller] Process initialized (PID -> 2373)
-[14/04/2025 - 21:36:40] [Controller] Loaded num_miners = 5
-[14/04/2025 - 21:36:40] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 21:36:40] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 21:36:40] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 21:36:40] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 21:36:40] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 21:36:40] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 21:36:40] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 21:36:40] [Validator] Process initialized (parent PID -> 2373)
-[14/04/2025 - 21:36:40] [Miner] Process initialized (parent PID -> 2373)
-[14/04/2025 - 21:36:40] [Controller] Validator Manager launched successfully
-[14/04/2025 - 21:36:40] [Statistics] Process initialized (parent PID -> 2373)
-[14/04/2025 - 21:36:40] [Miner] Thread 1 initialized
-[14/04/2025 - 21:36:40] [Miner] Thread 4 initialized
-[14/04/2025 - 21:36:40] [Miner] Thread 3 initialized
-[14/04/2025 - 21:36:40] [Miner] Thread 2 initialized
-[14/04/2025 - 21:36:40] [Miner] Thread 2 terminated
-[14/04/2025 - 21:36:40] [Miner] Thread 4 terminated
-[14/04/2025 - 21:36:40] [Miner] Thread 3 terminated
-[14/04/2025 - 21:36:40] [Miner] Thread 5 initialized
-[14/04/2025 - 21:36:40] [Miner] Thread 5 terminated
-[14/04/2025 - 21:36:40] [Miner] Thread 1 terminated
-[14/04/2025 - 21:37:57] [Controller] ^C detected. Closing.
-[14/04/2025 - 21:39:36] [Controller] Process initialized (PID -> 2560)
-[14/04/2025 - 21:39:36] [Controller] Loaded num_miners = 5
-[14/04/2025 - 21:39:36] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 21:39:36] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 21:39:36] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 21:39:36] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 21:39:36] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 21:39:36] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 21:39:36] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 21:39:36] [Validator] Process initialized (PID -> 2562 | parent PID -> 2560)
-[14/04/2025 - 21:39:36] [Miner] Process initialized (PID -> 2561 | parent PID -> 2560)
-[14/04/2025 - 21:39:36] [Miner] Thread 1 initialized
-[14/04/2025 - 21:39:36] [Miner] Thread 1 terminated
-[14/04/2025 - 21:39:36] [Statistics] Process initialized (PID -> 2564 | parent PID -> 2560)
-[14/04/2025 - 21:39:36] [Miner] Thread 2 initialized
-[14/04/2025 - 21:39:36] [Miner] Thread 2 terminated
-[14/04/2025 - 21:39:36] [Miner] Thread 4 initialized
-[14/04/2025 - 21:39:36] [Miner] Thread 4 terminated
-[14/04/2025 - 21:39:36] [Controller] Validator Manager launched successfully
-[14/04/2025 - 21:39:36] [Miner] Thread 3 initialized
-[14/04/2025 - 21:39:36] [Miner] Thread 5 initialized
-[14/04/2025 - 21:39:36] [Miner] Thread 5 terminated
-[14/04/2025 - 21:39:36] [Miner] Thread 3 terminated
-[14/04/2025 - 21:39:50] [Controller] ^C detected. Closing.
-[14/04/2025 - 21:39:57] [Controller] Process initialized (PID -> 2609)
-[14/04/2025 - 21:39:57] [Controller] Loaded num_miners = 5
-[14/04/2025 - 21:39:57] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 21:39:57] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 21:39:57] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 21:39:57] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 21:39:57] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 21:39:57] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 21:39:57] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 21:39:57] [Validator] Process initialized (PID -> 2611 | parent PID -> 2609)
-[14/04/2025 - 21:39:57] [Miner] Process initialized (PID -> 2610 | parent PID -> 2609)
-[14/04/2025 - 21:39:57] [Statistics] Process initialized (PID -> 2613 | parent PID -> 2609)
-[14/04/2025 - 21:39:57] [Controller] Validator Manager launched successfully
-[14/04/2025 - 21:39:57] [Miner] Thread 1 initialized
-[14/04/2025 - 21:39:57] [Miner] Thread 4 initialized
-[14/04/2025 - 21:39:57] [Miner] Thread 2 initialized
-[14/04/2025 - 21:39:57] [Miner] Thread 3 initialized
-[14/04/2025 - 21:39:57] [Miner] Thread 5 initialized
-[14/04/2025 - 21:39:57] [Miner] Thread 1 terminated
-[14/04/2025 - 21:39:57] [Miner] Thread 4 terminated
-[14/04/2025 - 21:39:57] [Miner] Thread 2 terminated
-[14/04/2025 - 21:39:57] [Miner] Thread 3 terminated
-[14/04/2025 - 21:39:57] [Miner] Thread 5 terminated
-[14/04/2025 - 21:40:04] [Controller] ^C detected. Closing.
-[14/04/2025 - 21:40:47] [Controller] Process initialized (PID -> 2699)
-[14/04/2025 - 21:40:47] [Controller] Loaded num_miners = 5
-[14/04/2025 - 21:40:47] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 21:40:47] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 21:40:47] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 21:40:47] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 21:40:47] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 21:40:47] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 21:40:47] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 21:40:47] [Validator] Process initialized (PID -> 2701 | parent PID -> 2699)
-[14/04/2025 - 21:40:47] [Controller] Validator Manager launched successfully
-[14/04/2025 - 21:40:47] [Statistics] Process initialized (PID -> 2703 | parent PID -> 2699)
-[14/04/2025 - 21:40:47] [Miner] Process initialized (PID -> 2700 | parent PID -> 2699)
-[14/04/2025 - 21:40:47] [Miner] Thread 2 initialized
-[14/04/2025 - 21:40:47] [Miner] Thread 5 initialized
-[14/04/2025 - 21:40:47] [Miner] Thread 5 terminated
-[14/04/2025 - 21:40:47] [Miner] Thread 3 initialized
-[14/04/2025 - 21:40:47] [Miner] Thread 3 terminated
-[14/04/2025 - 21:40:47] [Miner] Thread 2 terminated
-[14/04/2025 - 21:40:47] [Miner] Thread 4 initialized
-[14/04/2025 - 21:40:47] [Miner] Thread 4 terminated
-[14/04/2025 - 21:40:47] [Miner] Thread 1 initialized
-[14/04/2025 - 21:40:47] [Miner] Thread 1 terminated
-[14/04/2025 - 21:42:44] [Controller] ^C detected. Closing.
-[14/04/2025 - 22:48:29] [Controller] Process initialized (PID -> 1079)
-[14/04/2025 - 22:48:29] [Controller] Loaded num_miners = 5
-[14/04/2025 - 22:48:29] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 22:48:29] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 22:48:29] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 22:48:29] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 22:48:29] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 22:48:29] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 22:48:29] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 22:48:29] [Controller] Validator Manager launched successfully
-[14/04/2025 - 22:48:29] [Validator] Process initialized (PID -> 1081 | parent PID -> 1079)
-[14/04/2025 - 22:48:29] [Miner] Process initialized (PID -> 1080 | parent PID -> 1079)
-[14/04/2025 - 22:48:29] [Statistics] Process initialized (PID -> 1083 | parent PID -> 1079)
-[14/04/2025 - 22:48:29] [Miner] Thread 3 initialized
-[14/04/2025 - 22:48:29] [Miner] Thread 3 terminated
-[14/04/2025 - 22:48:29] [Miner] Thread 2 initialized
-[14/04/2025 - 22:48:29] [Miner] Thread 2 terminated
-[14/04/2025 - 22:48:29] [Miner] Thread 1 initialized
-[14/04/2025 - 22:48:29] [Miner] Thread 1 terminated
-[14/04/2025 - 22:48:29] [Miner] Thread 4 initialized
-[14/04/2025 - 22:48:29] [Miner] Thread 4 terminated
-[14/04/2025 - 22:48:29] [Miner] Thread 5 initialized
-[14/04/2025 - 22:48:29] [Miner] Thread 5 terminated
-[14/04/2025 - 21:50:58] [Controller] ^C detected. Closing.
-[14/04/2025 - 21:55:27] [Controller] Process initialized (PID -> 2192)
-[14/04/2025 - 21:55:27] [Controller] Loaded num_miners = 5
-[14/04/2025 - 21:55:27] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 21:55:27] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 21:55:27] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 21:55:27] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 21:55:27] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 21:55:27] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 21:55:27] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 21:55:27] [Miner] Process initialized (PID -> 2193 | parent PID -> 2192)
-[14/04/2025 - 21:55:27] [Miner] Thread 3 initialized
-[14/04/2025 - 21:55:27] [Miner] Thread 3 terminated
-[14/04/2025 - 21:55:27] [Miner] Thread 5 initialized
-[14/04/2025 - 21:55:27] [Miner] Thread 5 terminated
-[14/04/2025 - 21:55:27] [Miner] Thread 2 initialized
-[14/04/2025 - 21:55:27] [Miner] Thread 4 initialized
-[14/04/2025 - 21:55:27] [Miner] Thread 4 terminated
-[14/04/2025 - 21:55:27] [Miner] Thread 2 terminated
-[14/04/2025 - 21:55:27] [Miner] Thread 1 initialized
-[14/04/2025 - 21:55:27] [Miner] Thread 1 terminated
-[14/04/2025 - 21:55:39] [Controller] ^C detected. Closing.
-[14/04/2025 - 21:56:10] [Controller] Process initialized (PID -> 2369)
-[14/04/2025 - 21:56:10] [Controller] Loaded num_miners = 5
-[14/04/2025 - 21:56:10] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 21:56:10] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 21:56:10] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 21:56:10] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 21:56:10] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 21:56:10] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 21:56:10] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 21:56:10] [Miner] Process initialized (PID -> 2370 | parent PID -> 2369)
-[14/04/2025 - 21:56:10] [Controller] Validator Manager launched successfully
-[14/04/2025 - 21:56:10] [Validator] Process initialized (PID -> 2371 | parent PID -> 2369)
-[14/04/2025 - 21:56:10] [Miner] Thread 5 initialized
-[14/04/2025 - 21:56:10] [Miner] Thread 4 initialized
-[14/04/2025 - 21:56:10] [Miner] Thread 4 terminated
-[14/04/2025 - 21:56:10] [Miner] Thread 2 initialized
-[14/04/2025 - 21:56:10] [Miner] Thread 2 terminated
-[14/04/2025 - 21:56:10] [Miner] Thread 5 terminated
-[14/04/2025 - 21:56:10] [Miner] Thread 3 initialized
-[14/04/2025 - 21:56:10] [Miner] Thread 1 initialized
-[14/04/2025 - 21:56:10] [Miner] Thread 3 terminated
-[14/04/2025 - 21:56:10] [Miner] Thread 1 terminated
-[14/04/2025 - 21:56:19] [Controller] ^C detected. Closing.
-[14/04/2025 - 21:57:18] [Controller] Process initialized (PID -> 2495)
-[14/04/2025 - 21:57:18] [Controller] Loaded num_miners = 5
-[14/04/2025 - 21:57:18] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 21:57:18] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 21:57:18] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 21:57:18] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 21:57:18] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 21:57:18] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 21:57:18] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 21:57:18] [Validator] Process initialized (PID -> 2497 | parent PID -> 2495)
-[14/04/2025 - 21:57:18] [Controller] Validator Manager launched successfully
-[14/04/2025 - 21:57:18] [Statistics] Process initialized (PID -> 2499 | parent PID -> 2495)
-[14/04/2025 - 21:57:18] [Miner] Process initialized (PID -> 2496 | parent PID -> 2495)
-[14/04/2025 - 21:57:18] [Miner] Thread 1 initialized
-[14/04/2025 - 21:57:18] [Miner] Thread 2 initialized
-[14/04/2025 - 21:57:18] [Miner] Thread 3 initialized
-[14/04/2025 - 21:57:18] [Miner] Thread 3 terminated
-[14/04/2025 - 21:57:18] [Miner] Thread 4 initialized
-[14/04/2025 - 21:57:18] [Miner] Thread 4 terminated
-[14/04/2025 - 21:57:18] [Miner] Thread 2 terminated
-[14/04/2025 - 21:57:18] [Miner] Thread 1 terminated
-[14/04/2025 - 21:57:18] [Miner] Thread 5 initialized
-[14/04/2025 - 21:57:18] [Miner] Thread 5 terminated
-[14/04/2025 - 21:57:29] [Controller] ^C detected. Closing.
-[14/04/2025 - 21:59:52] [Controller] Process initialized (PID -> 2668)
-[14/04/2025 - 21:59:52] [Controller] Loaded num_miners = 5
-[14/04/2025 - 21:59:52] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 21:59:52] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 21:59:52] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 21:59:52] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 21:59:52] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 21:59:52] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 21:59:52] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 21:59:52] [Miner] Process initialized (PID -> 2669 | parent PID -> 2668)
-[14/04/2025 - 21:59:52] [Statistics] Process initialized (PID -> 2671 | parent PID -> 2668)
-[14/04/2025 - 21:59:52] [Validator] Process initialized (PID -> 2670 | parent PID -> 2668)
-[14/04/2025 - 21:59:52] [Miner] Thread 1 initialized
-[14/04/2025 - 21:59:52] [Miner] Thread 1 terminated
-[14/04/2025 - 21:59:52] [Miner] Thread 3 initialized
-[14/04/2025 - 21:59:52] [Miner] Thread 3 terminated
-[14/04/2025 - 21:59:52] [Miner] Thread 5 initialized
-[14/04/2025 - 21:59:52] [Miner] Thread 4 initialized
-[14/04/2025 - 21:59:52] [Miner] Thread 2 initialized
-[14/04/2025 - 21:59:52] [Miner] Thread 2 terminated
-[14/04/2025 - 21:59:52] [Miner] Thread 5 terminated
-[14/04/2025 - 21:59:52] [Miner] Thread 4 terminated
-[14/04/2025 - 22:00:12] [Controller] ^C detected. Closing.
-[14/04/2025 - 22:00:58] [Controller] Process initialized (PID -> 2880)
-[14/04/2025 - 22:00:58] [Controller] Loaded num_miners = 5
-[14/04/2025 - 22:00:58] [Controller] Loaded tx_pool_size = 50
-[14/04/2025 - 22:00:58] [Controller] Loaded transactions_per_block = 10
-[14/04/2025 - 22:00:58] [Controller] Loaded blockchain_blocks = 50000
-[14/04/2025 - 22:00:58] [Controller] Transaction Pool created (shared memory)
-[14/04/2025 - 22:00:58] [Controller] Transaction Pool attached to shared memory
-[14/04/2025 - 22:00:58] [Controller] Blockchain Ledger created (shared memory)
-[14/04/2025 - 22:00:58] [Controller] Blockchain Ledger attached to the shared memory
-[14/04/2025 - 22:00:58] [Validator] Process initialized (PID -> 2882 | parent PID -> 2880)
-[14/04/2025 - 22:00:58] [Statistics] Process initialized (PID -> 2884 | parent PID -> 2880)
-[14/04/2025 - 22:00:58] [Controller] Validator Manager launched successfully
-[14/04/2025 - 22:00:58] [Miner] Process initialized (PID -> 2881 | parent PID -> 2880)
-[14/04/2025 - 22:00:58] [Miner] Thread 1 initialized
-[14/04/2025 - 22:00:58] [Miner] Thread 1 terminated
-[14/04/2025 - 22:00:58] [Miner] Thread 4 initialized
-[14/04/2025 - 22:00:58] [Miner] Thread 4 terminated
-[14/04/2025 - 22:00:58] [Miner] Thread 3 initialized
-[14/04/2025 - 22:00:58] [Miner] Thread 5 initialized
-[14/04/2025 - 22:00:58] [Miner] Thread 2 initialized
-[14/04/2025 - 22:00:58] [Miner] Thread 2 terminated
-[14/04/2025 - 22:00:58] [Miner] Thread 5 terminated
-[14/04/2025 - 22:00:58] [Miner] Thread 3 terminated
-[14/04/2025 - 22:02:58] [Controller] ^C detected. Closing.
+[25/04/2025 - 15:52:01] [Controller] Process initialized (PID -> 2173)
+[25/04/2025 - 15:52:01] [Controller] Loaded num_miners = 5
+[25/04/2025 - 15:52:01] [Controller] Loaded tx_pool_size = 50
+[25/04/2025 - 15:52:01] [Controller] Loaded transactions_per_block = 10
+[25/04/2025 - 15:52:01] [Controller] Loaded blockchain_blocks = 50000
+[25/04/2025 - 15:52:01] [Controller] Transaction Pool created (shared memory)
+[25/04/2025 - 15:52:01] [Controller] Transaction Pool attached to shared memory
+[25/04/2025 - 15:52:01] [Controller] Blockchain Ledger created (shared memory)
+[25/04/2025 - 15:52:01] [Controller] Blockchain Ledger attached to the shared memory
+[25/04/2025 - 15:52:01] [Validator] Process initialized (PID -> 2175 | parent PID -> 2173)
+[25/04/2025 - 15:52:01] [Controller] Validator Manager launched successfully
+[25/04/2025 - 15:52:01] [Statistics] Process initialized (PID -> 2177 | parent PID -> 2173)
+[25/04/2025 - 15:52:01] [Miner] Process initialized (PID -> 2174 | parent PID -> 2173)
+[25/04/2025 - 15:52:01] [Miner] Thread 2 initialized
+[25/04/2025 - 15:52:01] [Miner] Thread 1 initialized
+[25/04/2025 - 15:52:01] [Miner] Thread 1 terminated
+[25/04/2025 - 15:52:01] [Miner] Thread 3 initialized
+[25/04/2025 - 15:52:01] [Miner] Thread 5 initialized
+[25/04/2025 - 15:52:01] [Miner] Thread 2 terminated
+[25/04/2025 - 15:52:01] [Miner] Thread 5 terminated
+[25/04/2025 - 15:52:01] [Miner] Thread 4 initialized
+[25/04/2025 - 15:52:01] [Miner] Thread 4 terminated
+[25/04/2025 - 15:52:01] [Miner] Thread 3 terminated
+[25/04/2025 - 15:52:03] [Controller] SIGINT received. Closing.
+[25/04/2025 - 15:52:03] [Controller] Printing simulation statistics
+[25/04/2025 - 15:52:03] [Controlled] Waiting for subprocesses to finish executing
+[25/04/2025 - 15:52:03] [Controller] Dumping the Blockchain Ledger
+[Controller] Dumping the Blockchain Ledger
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 0                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 0                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 1237473                                                         │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 6                  │ 2            │  12.00        │ 15:52:03           │
+│ 27                 │ 2            │  68.00        │ 15:52:03           │
+│ 62                 │ 2            │  17.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 1                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 1                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 1050213                                                         │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 85                 │ 1            │  41.00        │ 15:52:03           │
+│ 19                 │ 2            │  45.00        │ 15:52:03           │
+│ 33                 │ 1            │   5.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 2                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 2                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 170089                                                          │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 64                 │ 1            │  54.00        │ 15:52:03           │
+│ 22                 │ 2            │  53.00        │ 15:52:03           │
+│ 78                 │ 2            │  81.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 3                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 3                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 1355932                                                         │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 68                 │ 1            │  27.00        │ 15:52:03           │
+│ 79                 │ 1            │  26.00        │ 15:52:03           │
+│ 98                 │ 1            │   9.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 4                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 4                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 1587226                                                         │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 41                 │ 1            │  91.00        │ 15:52:03           │
+│ 33                 │ 2            │  64.00        │ 15:52:03           │
+│ 77                 │ 1            │  89.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 5                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 5                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 949693                                                          │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 79                 │ 1            │  61.00        │ 15:52:03           │
+│ 33                 │ 1            │  40.00        │ 15:52:03           │
+│ 37                 │ 1            │  55.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 6                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 6                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 842337                                                          │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 8                  │ 1            │   5.00        │ 15:52:03           │
+│ 86                 │ 2            │  71.00        │ 15:52:03           │
+│ 12                 │ 2            │  99.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 7                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 7                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 1373192                                                         │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 18                 │ 1            │  67.00        │ 15:52:03           │
+│ 8                  │ 2            │  84.00        │ 15:52:03           │
+│ 24                 │ 2            │  34.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 8                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 8                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 1410432                                                         │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 40                 │ 2            │  17.00        │ 15:52:03           │
+│ 52                 │ 1            │  43.00        │ 15:52:03           │
+│ 44                 │ 2            │  99.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                            Block 9                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Block ID: 9                                                            │
+│ Previous Hash:                                                         │
+│   00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436     │
+│ Block Timestamp: 15:52:03                                              │
+│ Nonce: 687958                                                          │
+├────────────────────────────────────────────────────────────────────────┤
+│                          Transactions                                  │
+├────────────────────┬──────────────┬───────────────┬────────────────────┤
+│ TX ID              │ Reward       │ Value         │ Timestamp          │
+├────────────────────┼──────────────┼───────────────┼────────────────────┤
+│ 0                  │ 1            │  74.00        │ 15:52:03           │
+│ 56                 │ 2            │  27.00        │ 15:52:03           │
+│ 26                 │ 2            │  79.00        │ 15:52:03           │
+└────────────────────┴──────────────┴───────────────┴────────────────────┘
+[Controller] Blockchain Ledger dumped successfully

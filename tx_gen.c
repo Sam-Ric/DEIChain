@@ -77,7 +77,8 @@ int main(int argc, char *argv[]) {
     printf("[TxGen] [PID %d] Error accessing the Transaction Pool (Shared Memory)\n", getpid());
     exit(-1);
   }
-  printf("[TxGen] [PID %d] Successfully accessed the Transaction Pool (Shared Memory)\n", getpid());
+  if (DEBUG)
+    printf("[TxGen] [PID %d] Successfully accessed the Transaction Pool (Shared Memory)\n", getpid());
 
   // -- Attach to the shared memory
   TxPoolNode *tx_pool;
@@ -85,8 +86,10 @@ int main(int argc, char *argv[]) {
     printf("[TxGen] [PID %d] Error attaching to the Transaction Pool (Shared Memory)\n", getpid());
     exit(-1);
 	}
-  printf("[TxGen] [PID %d] Successfully attached to the Transaction Pool\n", getpid());
-  printf("[TxGen] shmget key: %d | shmid: %d\n", tx_key, tx_pool_id);
+  if (DEBUG) {
+    printf("[TxGen] [PID %d] Successfully attached to the Transaction Pool\n", getpid());
+    printf("[TxGen] shmget key: %d | shmid: %d\n", tx_key, tx_pool_id);
+  }
 
 
   // -- Get the size of Transaction Pool
@@ -111,7 +114,8 @@ int main(int argc, char *argv[]) {
     // -- Find the first empty slot in the Transaction Pool
     sem_wait(tx_pool_empty);
     sem_wait(tx_pool_mutex);
-    printf("[Tx Gen] [PID %d] Writing the transaction to the Transaction Pool...\n", getpid());
+    if (DEBUG)
+      printf("[Tx Gen] [PID %d] Writing the transaction to the Transaction Pool...\n", getpid());
     int i = 0;
     while (tx_pool[i].empty != 1) {
       i = (i + 1) % tx_pool_size;
@@ -123,7 +127,8 @@ int main(int argc, char *argv[]) {
     tx_pool[i].empty = 0;
     sem_post(tx_pool_mutex);
     sem_post(tx_pool_full);
-    printf("[Tx Gen] [PID %d] Transaction successfully written to the Transaction Pool.\n", getpid());
+    if (DEBUG)
+      printf("[Tx Gen] [PID %d] Transaction successfully written to the Transaction Pool.\n", getpid());
 
     sleep(2); // -- TODO: revert the sleep time back to 'sleeptime'
   }

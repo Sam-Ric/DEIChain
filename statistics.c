@@ -20,11 +20,6 @@ void statistics() {
   sprintf(msg, "[Statistics] Process initialized (PID -> %d | parent PID -> %d)", getpid(), getppid());
   log_message(msg, 'r', DEBUG);
 
-  // Ignore ^C signal
-  signal(SIGINT, SIG_IGN);
-  // Ignore ^T signal
-  signal(SIGUSR1, SIG_IGN);
-
   /* ---- Statistics Code ---- */
   while (1) {
     printf("[Statistics] Running...\n");

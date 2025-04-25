@@ -23,7 +23,7 @@ typedef struct {
 typedef struct {
   int id;
   int reward;
-  int value;
+  double value;
   Timestamp timestamp;
 } Tx;
 
