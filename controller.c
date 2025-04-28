@@ -10,7 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ipc.h>
+#include <sys/msg.h>
 #include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <semaphore.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -25,6 +28,7 @@
 #include "validator.h"
 
 #define DEBUG 1
+#define PIPE_NAME "VALIDATOR_INPUT"
 
 // Semaphores and mutexes
 sem_t *log_mutex;
@@ -41,6 +45,9 @@ TxBlock *blockchain_ledger;
 TxBlock *blocks;
 Tx *transactions;
 
+// Message queue ID
+int msq_id;
+
 // Process IDs
 pid_t miner_pid, statistics_pid, validator_pid[3];
 
@@ -50,6 +57,36 @@ int tx_pool_size;
 int tx_per_block;
 int blockchain_blocks;
 int stop_validator_manager;
+
+void cleanup() {
+  // Detaching and removing shared memory
+  if (tx_pool_id >= 0) {
+    shmdt(&tx_pool_id);
+    shmctl(tx_pool_id, IPC_RMID, NULL);
+  }
+  if (blockchain_ledger_id >= 0) {
+    shmdt(&blockchain_ledger_id);
+    shmctl(blockchain_ledger_id, IPC_RMID, NULL);
+  }
+
+  // Removing the named pipe
+  unlink(PIPE_NAME);
+
+  // Removing the message queue
+  msgctl(msq_id, IPC_RMID, NULL);
+
+  // Releasing semaphores and mutexes
+  sem_close(log_mutex);
+  sem_close(tx_pool_empty);
+  sem_close(tx_pool_full);
+  sem_close(tx_pool_mutex);
+  sem_close(ledger_mutex);
+  sem_unlink("LOG_MUTEX");
+  sem_unlink("TX_POOL_EMPTY");
+  sem_unlink("TX_POOL_FULL");
+  sem_unlink("TX_POOL_MUTEX");
+  sem_unlink("LEDGER_MUTEX");
+}
 
 /*
   Perform the cleanup of the IPC mechanisms and any active processes
@@ -80,27 +117,8 @@ void signals(int signum) {
     log_message("[Controller] Dumping the Blockchain Ledger", 'r', 1);
     dump_ledger(blocks, transactions, blockchain_blocks, tx_per_block);
 
-    // Detaching and removing shared memory
-    if (tx_pool_id >= 0) {
-      shmdt(&tx_pool_id);
-      shmctl(tx_pool_id, IPC_RMID, NULL);
-    }
-    if (blockchain_ledger_id >= 0) {
-      shmdt(&blockchain_ledger_id);
-      shmctl(blockchain_ledger_id, IPC_RMID, NULL);
-    }
-
-    // Releasing semaphores and mutexes
-    sem_close(log_mutex);
-    sem_close(tx_pool_empty);
-    sem_close(tx_pool_full);
-    sem_close(tx_pool_mutex);
-    sem_close(ledger_mutex);
-    sem_unlink("LOG_MUTEX");
-    sem_unlink("TX_POOL_EMPTY");
-    sem_unlink("TX_POOL_FULL");
-    sem_unlink("TX_POOL_MUTEX");
-    sem_unlink("LEDGER_MUTEX");
+    // Cleanup IPCs and semaphores
+    cleanup();
 
     exit(0);
   }
@@ -117,7 +135,7 @@ void signals(int signum) {
 */
 void* manage_validation(void *void_args) {
   log_message("[Controller] Validator Manager launched successfully", 'r', DEBUG);
-  struct ThreadArgs args = *((struct ThreadArgs*)void_args);
+  struct ValidatorThreadArgs args = *((struct ValidatorThreadArgs*)void_args);
   TxPoolNode *tx_pool = args.tx_pool;
   int size = args.tx_pool_size;
 
@@ -215,6 +233,7 @@ int main() {
   key_t tx_key = ftok("config.cfg", 'K');
   if ((tx_pool_id = shmget(tx_key, size, IPC_CREAT | 0766)) < 0) {
     log_message("[Controller] Error creating the Transaction Pool (Shared Memory)", 'w', 1);
+    cleanup();
     exit(-1);
   }
   log_message("[Controller] Transaction Pool created (shared memory)", 'r', DEBUG);
@@ -222,6 +241,7 @@ int main() {
   // -- Attach the Transaction Pool to the shared memory
   if ((tx_pool = (TxPoolNode*)shmat(tx_pool_id, NULL, 0)) < 0) {
 		log_message("[Controller] Error attaching the Transaction Pool (Shared Memory)", 'w', 1);
+    cleanup();
 		exit(-1);
 	}
   log_message("[Controller] Transaction Pool attached to shared memory", 'r', DEBUG);
@@ -238,6 +258,7 @@ int main() {
   size = (sizeof(TxBlock) + sizeof(Tx) * tx_per_block) * blockchain_blocks;
   if ((blockchain_ledger_id = shmget(IPC_PRIVATE, size, IPC_CREAT | 0766)) < 0) {
     log_message("[Controller] Error creating the Blockchain Ledger", 'w', 1);
+    cleanup();
     exit(-1);
   }
   log_message("[Controller] Blockchain Ledger created (shared memory)", 'r', DEBUG);
@@ -245,6 +266,7 @@ int main() {
   // -- Attach the Blockchain Ledger to the shared memory
   if ((blockchain_ledger = (TxBlock*)shmat(blockchain_ledger_id, NULL, 0)) < 0) {
     log_message("[Controller] Error attaching the Blockchain Ledger (Shared Memory)", 'w', 1);
+    cleanup();
     exit(-1);
   }
   log_message("[Controller] Blockchain Ledger attached to the shared memory", 'r', DEBUG);
@@ -252,7 +274,7 @@ int main() {
   // -- Map the Blockchain Ledger elements in shared memory
   get_blockchain_mapping(blockchain_ledger, blockchain_blocks, &blocks, &transactions);
 
-  // Semaphores and mutexes
+  // Create semaphores and mutexes
   sem_unlink("TX_POOL_MUTEX");
   tx_pool_mutex = sem_open("TX_POOL_MUTEX", O_CREAT | O_EXCL, 0700, 1);
   sem_unlink("TX_POOL_FULL");
@@ -262,19 +284,32 @@ int main() {
   sem_unlink("LEDGER_MUTEX");
   ledger_mutex = sem_open("LEDGER_MUTEX", O_CREAT | O_EXCL, 0700, 1);
 
-  // Message queue
+  // Create the message queue
+  key_t msq_key = ftok("config.cfg", 'M');
+  if ((msq_id = msgget(msq_key, IPC_CREAT | IPC_EXCL | 0766)) < 0) {
+    log_message("[Controller] Error creating the message queue", 'w', 1);
+    cleanup();
+    exit(-1);
+  }
 
-  // Named pipe
+  // Create the named pipe
+  if (mkfifo(PIPE_NAME, O_CREAT | O_EXCL | 0766) < 0) {
+    log_message("[Controller] Error creating the named pipe", 'w', 1);
+    cleanup();
+    exit(-1);
+  }
 
   // Creating the required processes
   // -- Miner process
   struct MinerArgs miner_args;
+  miner_args.num_miners = num_miners;
   miner_args.blocks = blocks;
   miner_args.transactions = transactions;
+  miner_args.tx_per_block = tx_per_block;
   miner_args.tx_pool = tx_pool;
   miner_args.tx_pool_size = tx_pool_size;
   if ((miner_pid = fork()) == 0) {
-    miner(num_miners, miner_args);
+    miner(miner_args);
     exit(0);
   } else if (miner_pid < 0) {
     log_message("[Controller] Could not create the Miner process", 'w', 1);
@@ -295,7 +330,7 @@ int main() {
   }
   // ---- Launch the thread to manage the transaction pool occupancy
   pthread_t validator_manager_id;
-  struct ThreadArgs thread_args;
+  struct ValidatorThreadArgs thread_args;
   thread_args.tx_pool = tx_pool;
   thread_args.tx_pool_size = tx_pool_size;
   stop_validator_manager = 0;

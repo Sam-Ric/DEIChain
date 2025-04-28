@@ -11,6 +11,6 @@
 #include "structs.h"
 
 void* miner_routine(void*);
-void miner(int, struct MinerArgs);
+void miner(struct MinerArgs);
 
 #endif

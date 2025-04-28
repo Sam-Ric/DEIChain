@@ -57,17 +57,25 @@ typedef struct {
 } PoW;
 
 // Validator Manager's variables
-struct ThreadArgs {
+struct ValidatorThreadArgs {
   TxPoolNode *tx_pool;
   int tx_pool_size;
 };
 
 // Miner Shared Memory data
 struct MinerArgs {
+  int num_miners;
   TxPoolNode *tx_pool;
   int tx_pool_size;
+  int tx_per_block;
   TxBlock *blocks;
   Tx *transactions;
+};
+
+// Miner thread arguments
+struct MinerThreadArgs {
+  int miner_id;
+  int tx_per_block;
 };
 
 #endif

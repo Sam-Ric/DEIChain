@@ -18,16 +18,18 @@
 #define DEBUG 1
 
 
-void* miner_routine(void* miner_id) {
+void* miner_routine(void* thread_args) {
   // Thread initialization
-  int id = *((int*)miner_id);
+  struct MinerThreadArgs *args = (struct MinerThreadArgs*)thread_args;
+  int id = args->miner_id;
+  int tx_per_block = args->tx_per_block;
   char msg[100];
   sprintf(msg, "[Miner] Thread %d initialized", id);
   log_message(msg, 'r', DEBUG);
 
   /* ---- Thread Code ---- */
 
-  // Thread initialization
+  // Thread termination
   sprintf(msg, "[Miner] Thread %d terminated", id);
   log_message(msg, 'r', DEBUG);
   pthread_exit(NULL);
@@ -39,24 +41,30 @@ void* miner_routine(void* miner_id) {
   reading transactions, grouping them into blocks and performing
   a PoW step.
 */
-void miner(int num_miners, struct MinerArgs args) {
+void miner(struct MinerArgs args) {
+  // "Unpack" the arguments
+  int num_miners = args.num_miners;
+  int tx_per_block = args.tx_per_block;
+  int tx_pool_size = args.tx_pool_size;
+  TxPoolNode *tx_pool = args.tx_pool;
+  TxBlock *blocks;
+  Tx *transactions = args.transactions;
+
   // Process initialization
   pthread_t thread_id[num_miners];
-  int miner_id[num_miners];
+  struct MinerThreadArgs thread_args;
+  thread_args.tx_per_block = tx_per_block;
   char msg[100];
   sprintf(msg, "[Miner] Process initialized (PID -> %d | parent PID -> %d)", getpid(), getppid());
   log_message(msg, 'r', DEBUG);
-
-  // Ignore ^C signal
-  signal(SIGINT, SIG_IGN);
-  // Ignore ^T signal
-  signal(SIGUSR1, SIG_IGN);
   
   // Create the miner threads
+  
+
   for (int i = 0; i < num_miners; i++) {
-    miner_id[i] = i + 1;
-    if (pthread_create(&thread_id[i], NULL, miner_routine, &miner_id[i]) != 0) {
-      sprintf(msg, "[Miner] Error creating miner thread %d", miner_id[i]);
+    thread_args.miner_id = i + 1;
+    if (pthread_create(&thread_id[i], NULL, miner_routine, &thread_args) != 0) {
+      sprintf(msg, "[Miner] Error creating miner thread %d", i + 1);
       log_message(msg, 'w', 1);
       exit(-1);
     }
@@ -65,15 +73,10 @@ void miner(int num_miners, struct MinerArgs args) {
   // Wait for the threads to finish running
   for (int i = 0; i < num_miners; i++) {
     if (pthread_join(thread_id[i], NULL) != 0) {
-      sprintf(msg, "[Miner] Error joining miner thread %d", miner_id[i]);
+      sprintf(msg, "[Miner] Error joining miner thread %d", i + 1);
       log_message(msg, 'w', 1);
       exit(-1);
     }
-  }
-
-  while (1) {
-    printf("[Miner] Running...\n");
-    sleep(2);
   }
 
   // Process termination
