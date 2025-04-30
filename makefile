@@ -1,4 +1,4 @@
-FLAGS	= -Wall -g
+FLAGS	= -Wall -g -lpthread
 CC	= gcc
 PROG1	= DEIChain
 PROG2 = TxGen

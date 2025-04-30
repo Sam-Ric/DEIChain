@@ -21,7 +21,7 @@ typedef struct {
   Transaction structure
 */
 typedef struct {
-  int id;
+  char id[64];
   int reward;
   double value;
   Timestamp timestamp;
@@ -31,9 +31,10 @@ typedef struct {
   Block structure
 */
 typedef struct {
-  int id;
+  char id[64];
   char previous_block_hash[100];
   Timestamp timestamp;
+  Tx *transactions;
   int nonce;
 } TxBlock;
 

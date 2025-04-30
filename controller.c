@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/shm.h>
@@ -28,7 +29,7 @@
 #include "validator.h"
 
 #define DEBUG 1
-#define PIPE_NAME "VALIDATOR_INPUT"
+#define PIPE_NAME "/tmp/VALIDATOR_INPUT"
 
 // Semaphores and mutexes
 sem_t *log_mutex;
@@ -43,7 +44,6 @@ int blockchain_ledger_id;
 TxPoolNode *tx_pool;
 TxBlock *blockchain_ledger;
 TxBlock *blocks;
-Tx *transactions;
 
 // Message queue ID
 int msq_id;
@@ -57,8 +57,12 @@ int tx_pool_size;
 int tx_per_block;
 int blockchain_blocks;
 int stop_validator_manager;
+FILE *log_file;
 
 void cleanup() {
+  // Close the log file
+  fclose(log_file);
+
   // Detaching and removing shared memory
   if (tx_pool_id >= 0) {
     shmdt(&tx_pool_id);
@@ -115,7 +119,7 @@ void signals(int signum) {
 
     // Dumping the Blockchain Ledger
     log_message("[Controller] Dumping the Blockchain Ledger", 'r', 1);
-    dump_ledger(blocks, transactions, blockchain_blocks, tx_per_block);
+    dump_ledger(blocks, blockchain_blocks, tx_per_block);
 
     // Cleanup IPCs and semaphores
     cleanup();
@@ -147,7 +151,7 @@ void* manage_validation(void *void_args) {
     sem_wait(tx_pool_mutex);
     int occupated_blocks = 0;
     for (int i = 0; i < size; i++) {
-      printf("[Validator] block %2d status: %d\n", i, tx_pool[i].empty);
+      printf("[Validator] Block %2d status: %d\n", i, tx_pool[i].empty);
       if (tx_pool[i].empty == 0)
         occupated_blocks++;
     }
@@ -203,6 +207,13 @@ int main() {
   // Setting up a mutex to handle access to the log file
   sem_unlink("LOG_MUTEX");
   log_mutex = sem_open("LOG_MUTEX", O_CREAT | O_EXCL, 0700, 1);
+
+  // -- Open the log file for writing
+  log_file = fopen("DEIChain_log.txt", "a");
+  if (log_file == NULL) {
+    printf("\x1b[31m[!]\x1b[0m [Controller] Error opening the log file\n");
+    exit(-1);
+  }
 
   // Process initialization
   char msg[100];  // Variable use to temporarily store a message to be logged
@@ -272,7 +283,9 @@ int main() {
   log_message("[Controller] Blockchain Ledger attached to the shared memory", 'r', DEBUG);
 
   // -- Map the Blockchain Ledger elements in shared memory
-  get_blockchain_mapping(blockchain_ledger, blockchain_blocks, &blocks, &transactions);
+  get_blockchain_mapping(blockchain_ledger, blockchain_blocks, tx_per_block, &blocks);
+  // -- Initialize the Ledger's blocks
+  //memset(blocks, 0, sizeof(TxBlock) * blockchain_blocks);
 
   // Create semaphores and mutexes
   sem_unlink("TX_POOL_MUTEX");
@@ -304,7 +317,6 @@ int main() {
   struct MinerArgs miner_args;
   miner_args.num_miners = num_miners;
   miner_args.blocks = blocks;
-  miner_args.transactions = transactions;
   miner_args.tx_per_block = tx_per_block;
   miner_args.tx_pool = tx_pool;
   miner_args.tx_pool_size = tx_pool_size;

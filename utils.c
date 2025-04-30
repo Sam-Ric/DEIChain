@@ -22,6 +22,8 @@
 
 #define BUFFER_SIZE 100
 
+extern FILE *log_file;
+
 /*
   Function to log a message to the log file and, optionally, on the console
 */
@@ -48,18 +50,10 @@ void log_message(char *msg, char msg_type, int verbose) {
 
   // Log the message to the log file
   sem_wait(log_mutex);
-
-  // -- Open the log file for writing
-  FILE *log_file = fopen("DEIChain_log.txt", "a");
-  if (log_file == NULL) {
-    printf("\x1b[31m[!]\x1b[0m [Controller] Error opening the log file\n");
-    exit(-1);
-  }
   
   // -- Write the log message to the log file
   fprintf(log_file, "[%02d/%02d/%d - %02d:%02d:%02d] %s\n", day, month, year, hours, minutes, seconds, msg);
   fflush(log_file);
-  fclose(log_file);
   sem_post(log_mutex);
 
   // -- Print the message on the screen
@@ -157,20 +151,27 @@ Timestamp get_timestamp() {
   Auxiliary function to get the memory addresses of the blocks and the
   respective transactions in shared memory
 */
-void get_blockchain_mapping(TxBlock *blockchain_ledger, int num_blocks, TxBlock **blocks, Tx **transactions) {
+void get_blockchain_mapping(TxBlock *blockchain_ledger, int num_blocks, int tx_per_block, TxBlock **blocks) {
+  // Cursor with the shared memory's address
   char *cursor = (char*)blockchain_ledger;
   
+  // Assign the blocks array
   *blocks = (TxBlock*)cursor;
   cursor += sizeof(TxBlock) * num_blocks;
 
-  *transactions = (Tx*)cursor;
+  // Assign the transactions array
+  Tx *transactions = (Tx*)cursor;
+
+  // Map each block's transactions array
+  for (int i = 0; i < num_blocks; i++)
+    (*blocks)[i].transactions = transactions + i * (sizeof(Tx) * tx_per_block);
 }
 
 
 /*
   Auxiliar function to dump the data from the Blockchain Ledger
 */
-void dump_ledger(TxBlock *blocks, Tx *transactions, int num_blocks, int tx_per_block) {
+void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block) {
   sem_t *ledger_mutex = sem_open("LEDGER_MUTEX", 0);
   sem_t *log_mutex = sem_open("LOG_MUTEX", 0);
   if (ledger_mutex == SEM_FAILED) {
@@ -189,18 +190,19 @@ void dump_ledger(TxBlock *blocks, Tx *transactions, int num_blocks, int tx_per_b
   // Create dummy blocks for testing purposes
   srand(time(NULL));
   for (int x = 0; x < 10; x++) {
-    int block_index = x;
-    blocks[block_index].id = x;
-    strcpy(blocks[block_index].previous_block_hash, "00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436");
-    blocks[block_index].timestamp = get_timestamp();
-    blocks[block_index].nonce = rand() % 1680540;
-    int index = tx_per_block * block_index;
+    TxBlock *block = &blocks[x];
+    char temp[64];
+    sprintf(temp, "BLOCK-%d-%d", rand() % 1000 + 1000, rand() % 100 + 1);
+    strcpy(block->id, temp);
+    strcpy(block->previous_block_hash, "00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436");
+    block->timestamp = get_timestamp();
+    block->nonce = rand() % 1680540;
     for (int i = 0; i < 3; i++) {
-      transactions[index].id = rand() % 100;
-      transactions[index].reward = rand() % 2 + 1;
-      transactions[index].value = (double)(rand() % 100 + 1);
-      transactions[index].timestamp = get_timestamp();
-      index++;
+      sprintf(temp, "TX-%d-%d", rand() % 1000 + 1000, rand() % 100 + 1);
+      strcpy(block->transactions[i].id, temp);
+      block->transactions[i].reward = rand() % 2 + 1;
+      block->transactions[i].value = (double)(rand() % 100 + 1);
+      block->transactions[i].timestamp = get_timestamp();
     }
   }
   
@@ -214,15 +216,14 @@ void dump_ledger(TxBlock *blocks, Tx *transactions, int num_blocks, int tx_per_b
   char buffer[2000];
   fprintf(log_file, "[Controller] Dumping the Blockchain Ledger");
   for (int i = 0; i < num_blocks; i++) {
-    int tx_index = i * tx_per_block;
-    TxBlock block = blocks[i];
-    if (block.timestamp.hour == 0 && block.timestamp.min == 0 && block.timestamp.sec == 0)
+    TxBlock *block = &blocks[i];
+    if (block->timestamp.hour == 0 && block->timestamp.min == 0 && block->timestamp.sec == 0)
       continue;
     snprintf(buffer, sizeof(buffer),
         "\n┌────────────────────────────────────────────────────────────────────────┐\n"
         "│                            Block %-4d                                  │\n"
         "├────────────────────────────────────────────────────────────────────────┤\n"
-        "│ Block ID: %-10d                                                   │\n"
+        "│ Block ID: %-20s                                         │\n"
         "│ Previous Hash:                                                         │\n"
         "│   %-69s│\n"
         "│ Block Timestamp: %02d:%02d:%02d                                              │\n"
@@ -232,20 +233,20 @@ void dump_ledger(TxBlock *blocks, Tx *transactions, int num_blocks, int tx_per_b
         "├────────────────────┬──────────────┬───────────────┬────────────────────┤\n"
         "│ TX ID              │ Reward       │ Value         │ Timestamp          │\n"
         "├────────────────────┼──────────────┼───────────────┼────────────────────┤\n",
-        i, block.id, block.previous_block_hash, block.timestamp.hour, block.timestamp.min,
-        block.timestamp.sec, block.nonce
+        i, block->id, block->previous_block_hash, block->timestamp.hour, block->timestamp.min,
+        block->timestamp.sec, block->nonce
     );
     fprintf(log_file, buffer);
     printf(buffer);
     // Print Transactions for the Block
     for (int j = 0; j < tx_per_block; j++) {
-      Tx tx = transactions[tx_index];
+      Tx tx = block->transactions[j];
       if (tx.reward > 0 && tx.reward < 4) {
-        sprintf(buffer, "│ %-6d             │ %-1d            │ %6.2lf        │ %02d:%02d:%02d           │\n", tx.id, tx.reward, tx.value, tx.timestamp.hour, tx.timestamp.min, tx.timestamp.sec);
+        sprintf(buffer, "│ %-11s        │ %-1d            │ %6.2lf        │ %02d:%02d:%02d           │\n",
+          tx.id, tx.reward, tx.value, tx.timestamp.hour, tx.timestamp.min, tx.timestamp.sec);
         fprintf(log_file, buffer);
         printf(buffer);
       }
-      tx_index++;
     }
     sprintf(buffer, "└────────────────────┴──────────────┴───────────────┴────────────────────┘\n");
     fprintf(log_file, buffer);

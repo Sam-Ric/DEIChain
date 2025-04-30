@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <time.h>
 #include <sys/shm.h>
@@ -17,7 +18,16 @@
 
 #define DEBUG 1
 
+FILE *log_file;
+
 int main(int argc, char *argv[]) {
+  // Open the log file
+  log_file = fopen("DEIChain_log.txt", "a");
+  if (log_file == NULL) {
+    printf("\x1b[31m[!]\x1b[0m [TxGen] Error opening the log file\n");
+    exit(-1);
+  }
+
   // Verify the given arguments
   if (argc != 3) {
     log_message("[Tx Gen] Error creating a Transaction Generator", 'w', 1);
@@ -98,12 +108,13 @@ int main(int argc, char *argv[]) {
   int tx_pool_size = (int)buf.shm_segsz / sizeof(TxPoolNode);
   printf("[TxGen] [PID %d] tx_pool_size = %d\n", getpid(), tx_pool_size);
 
-  int increment = 500;
+  int increment = 1;
   while (1) {
     // Generate a transaction
-    printf("[Tx Gen] [PID %d] ===== NEW TRANSACTION =====\n", getpid());
-    int id = getpid() + (increment++);
-    printf("[Tx Gen] [PID %d] Transaction ID = %d\n", getpid(), id);
+    printf("\n[Tx Gen] [PID %d] ===== NEW TRANSACTION =====\n", getpid());
+    char id[64];
+    sprintf(id, "TX-%d-%d", getpid(), increment++);
+    printf("[Tx Gen] [PID %d] Transaction ID = %s\n", getpid(), id);
     printf("[Tx Gen] [PID %d] Reward = %d\n", getpid(), reward);
     int value = rand() % 100 + 1;
     printf("[Tx Gen] [PID %d] Value = %d\n", getpid(), value);
@@ -120,7 +131,7 @@ int main(int argc, char *argv[]) {
     while (tx_pool[i].empty != 1) {
       i = (i + 1) % tx_pool_size;
     }
-    tx_pool[i].tx.id = id;
+    strcpy(tx_pool[i].tx.id, id);
     tx_pool[i].tx.reward = reward;
     tx_pool[i].tx.value = value;
     tx_pool[i].tx.timestamp = current_time;
