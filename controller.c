@@ -28,15 +28,14 @@
 #include "statistics.h"
 #include "validator.h"
 
-#define DEBUG 1
-#define PIPE_NAME "/tmp/VALIDATOR_INPUT"
-
 // Semaphores and mutexes
 sem_t *log_mutex;
 sem_t *tx_pool_mutex;
 sem_t *tx_pool_full;
 sem_t *tx_pool_empty;
 sem_t *ledger_mutex;
+sem_t *min_tx;
+sem_t *pipe_mutex;
 
 // Shared memory IDs
 int tx_pool_id;
@@ -85,11 +84,15 @@ void cleanup() {
   sem_close(tx_pool_full);
   sem_close(tx_pool_mutex);
   sem_close(ledger_mutex);
+  sem_close(min_tx);
+  sem_close(pipe_mutex);
   sem_unlink("LOG_MUTEX");
   sem_unlink("TX_POOL_EMPTY");
   sem_unlink("TX_POOL_FULL");
   sem_unlink("TX_POOL_MUTEX");
   sem_unlink("LEDGER_MUTEX");
+  sem_unlink("MIN_TX");
+  sem_unlink("PIPE_MUTEX");
 }
 
 /*
@@ -137,24 +140,40 @@ void signals(int signum) {
 /*
   Thread routine to manage the number of Validator threads
 */
-void* manage_validation(void *void_args) {
+void* manage_validation(void *args) {
   log_message("[Controller] Validator Manager launched successfully", 'r', DEBUG);
-  struct ValidatorThreadArgs args = *((struct ValidatorThreadArgs*)void_args);
-  TxPoolNode *tx_pool = args.tx_pool;
-  int size = args.tx_pool_size;
+  TxPoolNode *tx_pool = (TxPoolNode*)args;
+  int size = tx_pool_size;
 
   // Flags
   int aux1 = 0, aux2 = 0;
+  int sem_flag = 0;
 
   // Calculate the occupancy of the transaction pool (TODO -> implement synchronization)
   while (!stop_validator_manager) {
     sem_wait(tx_pool_mutex);
     int occupated_blocks = 0;
     for (int i = 0; i < size; i++) {
-      printf("[Validator] Block %2d status: %d\n", i, tx_pool[i].empty);
+      //printf("[Validator] Block %2d status: %d\n", i, tx_pool[i].empty);
       if (tx_pool[i].empty == 0)
         occupated_blocks++;
     }
+    
+    // When enough transactions are available
+    if (occupated_blocks >= tx_per_block && sem_flag == 0) {
+      printf("[Controller] [Validator Manager] Signaling the miner threads\n");
+      
+      // Signal all miner threads
+      for (int i = 0; i < num_miners; i++) {
+        sem_post(min_tx);
+      }
+      sem_flag = 1;
+    }
+    // When transactions drop below threshold => Reset the flag
+    else if (occupated_blocks < tx_per_block && sem_flag == 1) {
+      sem_flag = 0;
+    }
+
     int occupancy = (int)((float)occupated_blocks / size * 100);
     printf("[Controller] [Validator Manager] Current occupancy = %d\n", occupancy);
     // If the pool occupancy falls below 40%, terminate any additional validators
@@ -176,7 +195,7 @@ void* manage_validation(void *void_args) {
       log_message("[Controller] [Validator Manager] 60% occupancy reached. Launching an additional Validator", 'r', DEBUG);
       aux1 = 1;
       if ((validator_pid[1] = fork()) == 0) {
-        validator();
+        validator(2);
         exit(0);
       }
       if (validator_pid[1] < 0)
@@ -187,7 +206,7 @@ void* manage_validation(void *void_args) {
       log_message("[Controller] [Validator Manager] 80% occupancy reached. Launching an additional Validator", 'r', DEBUG);
       aux2 = 1;
       if ((validator_pid[2] = fork()) == 0) {
-        validator();
+        validator(3);
         exit(0);
       }
       if (validator_pid[2] < 0)
@@ -284,8 +303,18 @@ int main() {
 
   // -- Map the Blockchain Ledger elements in shared memory
   get_blockchain_mapping(blockchain_ledger, blockchain_blocks, tx_per_block, &blocks);
+
   // -- Initialize the Ledger's blocks
-  //memset(blocks, 0, sizeof(TxBlock) * blockchain_blocks);
+  Timestamp t;
+  t.hour = 0;
+  t.min = 0;
+  t.sec = 0;
+  for (int i = 0; i < blockchain_blocks; i++) {
+    blocks[i].id[0] = '\0';
+    blocks[i].previous_block_hash[0] = '\0';
+    blocks[i].timestamp = t;
+    blocks[i].nonce = 0;
+  }
 
   // Create semaphores and mutexes
   sem_unlink("TX_POOL_MUTEX");
@@ -296,6 +325,10 @@ int main() {
   tx_pool_empty = sem_open("TX_POOL_EMPTY", O_CREAT | O_EXCL, 0700, tx_pool_size);
   sem_unlink("LEDGER_MUTEX");
   ledger_mutex = sem_open("LEDGER_MUTEX", O_CREAT | O_EXCL, 0700, 1);
+  sem_unlink("MIN_TX");
+  min_tx = sem_open("MIN_TX", O_CREAT | O_EXCL, 0700, 0);
+  sem_unlink("PIPE_MUTEX");
+  pipe_mutex = sem_open("PIPE_MUTEX", O_CREAT | O_EXCL, 0700, 1);
 
   // Create the message queue
   key_t msq_key = ftok("config.cfg", 'M');
@@ -334,7 +367,7 @@ int main() {
     validator_pid[i] = 0;
   // ---- Create the first Validator process
   if ((validator_pid[0] = fork()) == 0) {
-    validator();
+    validator(1);
     exit(0);
   } else if (validator_pid[0] < 0) {
     log_message("[Controller] Could not create the Validator process", 'w', 1);
@@ -342,11 +375,8 @@ int main() {
   }
   // ---- Launch the thread to manage the transaction pool occupancy
   pthread_t validator_manager_id;
-  struct ValidatorThreadArgs thread_args;
-  thread_args.tx_pool = tx_pool;
-  thread_args.tx_pool_size = tx_pool_size;
   stop_validator_manager = 0;
-  if (pthread_create(&validator_manager_id, NULL, manage_validation, (void*)&thread_args) < 0) {
+  if (pthread_create(&validator_manager_id, NULL, manage_validation, (void*)tx_pool) < 0) {
     log_message("[Controller] Error launching the thread to manage validators", 'w', 1);
     exit(-1);
   }

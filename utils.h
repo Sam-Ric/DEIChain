@@ -46,4 +46,14 @@ void get_blockchain_mapping(TxBlock *blockchain_ledger, int num_blocks, int tx_p
 */
 void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block);
 
+/*
+  Prints a block's data
+*/
+void print_block(TxBlock block, int tx_per_block);
+
+/*
+  Auxiliary function that implements the aging mechanism of the Transactions Pool
+*/
+void increment_age(TxPoolNode **tx_pool, int size);
+
 #endif

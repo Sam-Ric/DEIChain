@@ -188,6 +188,7 @@ void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block) {
   sem_wait(log_mutex);
 
   // Create dummy blocks for testing purposes
+  /*
   srand(time(NULL));
   for (int x = 0; x < 10; x++) {
     TxBlock *block = &blocks[x];
@@ -205,6 +206,7 @@ void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block) {
       block->transactions[i].timestamp = get_timestamp();
     }
   }
+  */
   
   FILE *log_file = fopen("DEIChain_log.txt", "a");
   if (log_file == NULL) {
@@ -223,7 +225,7 @@ void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block) {
         "\n┌────────────────────────────────────────────────────────────────────────┐\n"
         "│                            Block %-4d                                  │\n"
         "├────────────────────────────────────────────────────────────────────────┤\n"
-        "│ Block ID: %-20s                                         │\n"
+        "│ Block ID: %-30s                               │\n"
         "│ Previous Hash:                                                         │\n"
         "│   %-69s│\n"
         "│ Block Timestamp: %02d:%02d:%02d                                              │\n"
@@ -252,8 +254,59 @@ void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block) {
     fprintf(log_file, buffer);
     printf(buffer);
   }
-  fprintf(log_file, "[Controller] Blockchain Ledger dumped successfully");
+  fprintf(log_file, "[Controller] Blockchain Ledger dumped successfully\n\n");
   fclose(log_file);
   sem_post(log_mutex);
   sem_post(ledger_mutex);
+}
+
+/*
+  Prints a block's data
+*/
+void print_block(TxBlock block, int tx_per_block) {
+  char buffer[2000];
+    snprintf(buffer, sizeof(buffer),
+        "\n┌────────────────────────────────────────────────────────────────────────┐\n"
+        "│                            Block %-4d                                  │\n"
+        "├────────────────────────────────────────────────────────────────────────┤\n"
+        "│ Block ID: %-30s                               │\n"
+        "│ Previous Hash:                                                         │\n"
+        "│   %-69s│\n"
+        "│ Block Timestamp: %02d:%02d:%02d                                              │\n"
+        "│ Nonce: %-10d                                                      │\n"
+        "├────────────────────────────────────────────────────────────────────────┤\n"
+        "│                          Transactions                                  │\n"
+        "├────────────────────┬──────────────┬───────────────┬────────────────────┤\n"
+        "│ TX ID              │ Reward       │ Value         │ Timestamp          │\n"
+        "├────────────────────┼──────────────┼───────────────┼────────────────────┤\n",
+        0, block.id, block.previous_block_hash, block.timestamp.hour, block.timestamp.min,
+        block.timestamp.sec, block.nonce
+    );
+    printf(buffer);
+    // Print Transactions for the Block
+    for (int j = 0; j < tx_per_block; j++) {
+      Tx tx = block.transactions[j];
+      if (tx.reward > 0 && tx.reward < 4) {
+        sprintf(buffer, "│ %-11s        │ %-1d            │ %6.2lf        │ %02d:%02d:%02d           │\n",
+          tx.id, tx.reward, tx.value, tx.timestamp.hour, tx.timestamp.min, tx.timestamp.sec);
+        printf(buffer);
+      }
+    }
+    sprintf(buffer, "└────────────────────┴──────────────┴───────────────┴────────────────────┘\n");
+    printf(buffer);
+}
+
+/*
+  Auxiliary function that implements the aging mechanism of the Transactions Pool
+*/
+void increment_age(TxPoolNode **tx_pool, int size) {
+  TxPoolNode *cur;
+  for (int i = 0; i < size; i++) {
+    cur = tx_pool[i];
+    if (cur->empty == 0) {
+      cur->age++;
+      if (cur->age % 50 == 0)
+        cur->tx.reward++;
+    }
+  }
 }

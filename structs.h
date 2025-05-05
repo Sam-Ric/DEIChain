@@ -8,6 +8,11 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
+#define DEBUG 1
+#define TXB_ID_LEN 64
+#define PIPE_NAME "/tmp/VALIDATOR_INPUT"
+#define HASH_SIZE 65
+
 /*
   Timestamp structure
 */
@@ -31,8 +36,8 @@ typedef struct {
   Block structure
 */
 typedef struct {
-  char id[64];
-  char previous_block_hash[100];
+  char id[TXB_ID_LEN];
+  char previous_block_hash[HASH_SIZE];
   Timestamp timestamp;
   Tx *transactions;
   int nonce;
@@ -45,6 +50,7 @@ typedef struct {
   int empty;
   int age;
   Tx tx;
+  int selected;
 } TxPoolNode;
 
 /*
@@ -57,12 +63,6 @@ typedef struct {
   int max_operations;
 } PoW;
 
-// Validator Manager's variables
-struct ValidatorThreadArgs {
-  TxPoolNode *tx_pool;
-  int tx_pool_size;
-};
-
 // Miner Shared Memory data
 struct MinerArgs {
   int num_miners;
@@ -70,13 +70,16 @@ struct MinerArgs {
   int tx_pool_size;
   int tx_per_block;
   TxBlock *blocks;
-  Tx *transactions;
 };
 
-// Miner thread arguments
-struct MinerThreadArgs {
+// Message Queue message format
+typedef struct {
+  
+} Message;
+
+typedef struct {
   int miner_id;
-  int tx_per_block;
-};
+  TxBlock block;
+} PipeMsg;
 
 #endif

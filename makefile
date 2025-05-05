@@ -1,8 +1,8 @@
-FLAGS	= -Wall -g -lpthread
+FLAGS	= -Wall -g -lpthread -L/usr/lib/aarch64-linux-gnu -lcrypto
 CC	= gcc
 PROG1	= DEIChain
 PROG2 = TxGen
-OBJS1	= controller.o miner.o validator.o statistics.o utils.o
+OBJS1	= controller.o miner.o validator.o statistics.o utils.o pow.o
 OBJS2 = tx_gen.o utils.o
 
 all:	${PROG1} ${PROG2}
@@ -10,8 +10,8 @@ all:	${PROG1} ${PROG2}
 clean:
 	rm -f ${OBJS1} ${OBJS2}
 
-${PROG1}:	${OBJS1}
-	${CC} ${FLAGS} ${OBJS1} -o $@
+${PROG1}: ${OBJS1}
+	${CC} ${OBJS1} -o $@ -lpthread -L/usr/lib/aarch64-linux-gnu -lcrypto
 
 ${PROG2}: ${OBJS2}
 	${CC} ${FLAGS} ${OBJS2} -o $@
@@ -23,7 +23,9 @@ ${PROG2}: ${OBJS2}
 
 utils.o:	utils.h utils.c
 
-miner.o:	utils.h miner.h miner.c
+pow.o:	pow.h pow.c
+
+miner.o:	utils.h miner.h pow.h miner.c
 
 validator.o:	utils.h validator.h validator.c
 

@@ -12,8 +12,6 @@
 #include "utils.h"
 #include "statistics.h"
 
-#define DEBUG 1
-
 void statistics() {
   // Process initialization
   char msg[100];

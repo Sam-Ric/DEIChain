@@ -15,8 +15,7 @@
 
 #include "utils.h"
 #include "structs.h"
-
-#define DEBUG 1
+#include "pow.h"
 
 FILE *log_file;
 
