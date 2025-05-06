@@ -5,6 +5,8 @@
     Diogo Santos (2023211097)
 */
 
+#define _POSIX_C_SOURCE 200809L // Signal library MACRO fix
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -13,13 +15,15 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <semaphore.h>
-
 #include "utils.h"
 #include "miner.h"
 #include "structs.h"
 #include "pow.h"
 
 #define BUF_SIZE 200
+
+pthread_mutex_t min_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t min_tx = PTHREAD_COND_INITIALIZER;
 
 extern int num_miners;
 extern int tx_per_block;
@@ -28,9 +32,22 @@ extern TxPoolNode *tx_pool;
 extern TxBlock *blocks;
 
 extern sem_t *tx_pool_mutex;
-extern sem_t *min_tx;
 extern sem_t *pipe_mutex;
+extern sem_t *hash_mutex;
 sem_t *console_mutex;
+
+extern char last_hash[HASH_SIZE];
+
+int *signal_received;
+
+void min_tx_handler(int signum) {
+  printf("[DEBUG] {SIG_HANDLER} ********* SIGUSR2 captured *********\n");
+  pthread_mutex_lock(&min_tx_mutex);
+  for (int i = 0; i < num_miners; i++)
+    signal_received[i] = 1;
+  pthread_cond_broadcast(&min_tx);
+  pthread_mutex_unlock(&min_tx_mutex);
+}
 
 void* miner_routine(void* miner_id) {
   // Thread initialization
@@ -39,24 +56,37 @@ void* miner_routine(void* miner_id) {
   sprintf(msg, "[Miner] Thread %d initialized", id);
   log_message(msg, 'r', DEBUG);
 
+  int fd = open(PIPE_NAME, O_WRONLY);
+
   // Miner thread routine
   int block_count = 0;
-  char prev_hash[HASH_SIZE];
   while (1) {
     // -- Assemble a new block
     TxBlock block;
     char buf[64];
     sprintf(buf, "BLOCK-%lu-%d", pthread_self(), block_count);
     strcpy(block.id, buf);
-    if (block_count == 0)
+    sem_wait(hash_mutex);
+    if (last_hash[0] == '\0')
       strcpy(block.previous_block_hash, INITIAL_HASH);
     else
-      strcpy(block.previous_block_hash, prev_hash);
+      strcpy(block.previous_block_hash, last_hash);
+    sem_post(hash_mutex);
+
     // -- Fill the block with transactions
     block.transactions = (Tx*)malloc(sizeof(Tx)*tx_per_block);
     
     // -- Check the available transactions
-    sem_wait(min_tx);
+    printf("[DEBUG] *** Miner %d waiting for the transactions signal\n", id);
+
+    pthread_mutex_lock(&min_tx_mutex);
+    while (!signal_received[id]) {
+      pthread_cond_wait(&min_tx, &min_tx_mutex);
+    }
+    signal_received[id] = 0;
+    pthread_mutex_unlock(&min_tx_mutex);
+
+    printf("[DEBUG] *** Miner %d received transactions signal\n", id);
     sem_wait(tx_pool_mutex);
 
     // -- Select transactions from the Transactions Pool
@@ -118,7 +148,7 @@ void* miner_routine(void* miner_id) {
     // print_block(block, tx_per_block);
     // sem_post(console_mutex);
 
-    // Get the miner to mine the assembled block
+    // Get the miner to perform the PoW step
     sprintf(msg, "[Miner Thread %d] Started mining block %s", id, block.id);
     log_message(msg, 'r', DEBUG);
 
@@ -138,25 +168,25 @@ void* miner_routine(void* miner_id) {
     }
     */
 
-    // If the mining process succeeds
+    // -- If the mining process succeeds
     sprintf(msg, "[Miner Thread %d] Successfully mined block %s", id, block.id);
     log_message(msg, 'r', DEBUG);
-    strcpy(prev_hash, result.hash);
 
     // Send the block to the validators via Named Pipe
-    PipeMsg block_data;
-    block_data.miner_id = id;
-    block_data.block = block;
+    PipeMsg *block_data = malloc(sizeof(PipeMsg) + tx_per_block * sizeof(Tx));
+    block_data->miner_id = id;
+    block_data->block = block;
+    //block_data->block.transactions = NULL;
+    strcpy(block_data->result_hash, result.hash);
+    memcpy(block_data->transactions, block.transactions, tx_per_block * sizeof(Tx));
 
     sem_wait(pipe_mutex);
-    int fd = open(PIPE_NAME, O_WRONLY);
     if (fd < 0) {
       sprintf(msg, "[Miner Thread %d] Error opening the named pipe", id);
       log_message(msg, 'w', 1);
     }
 
-    write(fd, &block_data, sizeof(PipeMsg)); // -> Send the block data
-    close(fd);
+    write(fd, block_data, sizeof(PipeMsg) + tx_per_block * sizeof(Tx)); // -> Send the block data
     sem_post(pipe_mutex);
 
     sprintf(msg, "[Miner Thread %d] Sent block %s for validation", id, block.id);
@@ -164,6 +194,7 @@ void* miner_routine(void* miner_id) {
 
     // Prepare the assembly of the next block
     block_count++;
+    free(block_data);
     free(block.transactions);
   } // -> while (1)
   
@@ -185,6 +216,13 @@ void miner(struct MinerArgs args) {
   char msg[100];
   sprintf(msg, "[Miner] Process initialized (PID -> %d | parent PID -> %d)", getpid(), getppid());
   log_message(msg, 'r', DEBUG);
+
+  signal_received = calloc(num_miners, sizeof(int));  // -> Flag array to check if the signal was already captured by the current thread
+
+  // Set up the signal handler
+  struct sigaction act;
+  act.sa_handler = min_tx_handler;
+  sigaction(SIGUSR2, &act, NULL);
 
   // Open the named semaphore
   tx_pool_mutex = sem_open("TX_POOL_MUTEX", 0);

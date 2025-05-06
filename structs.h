@@ -79,7 +79,9 @@ typedef struct {
 
 typedef struct {
   int miner_id;
+  char result_hash[HASH_SIZE];
   TxBlock block;
+  Tx transactions[];
 } PipeMsg;
 
 #endif

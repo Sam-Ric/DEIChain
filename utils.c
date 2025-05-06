@@ -299,10 +299,10 @@ void print_block(TxBlock block, int tx_per_block) {
 /*
   Auxiliary function that implements the aging mechanism of the Transactions Pool
 */
-void increment_age(TxPoolNode **tx_pool, int size) {
+void increment_age(TxPoolNode *tx_pool, int size) {
   TxPoolNode *cur;
   for (int i = 0; i < size; i++) {
-    cur = tx_pool[i];
+    cur = &tx_pool[i];
     if (cur->empty == 0) {
       cur->age++;
       if (cur->age % 50 == 0)

@@ -34,8 +34,8 @@ sem_t *tx_pool_mutex;
 sem_t *tx_pool_full;
 sem_t *tx_pool_empty;
 sem_t *ledger_mutex;
-sem_t *min_tx;
 sem_t *pipe_mutex;
+sem_t *hash_mutex;
 
 // Shared memory IDs
 int tx_pool_id;
@@ -57,6 +57,7 @@ int tx_per_block;
 int blockchain_blocks;
 int stop_validator_manager;
 FILE *log_file;
+char last_hash[HASH_SIZE] = "\0";
 
 void cleanup() {
   // Close the log file
@@ -84,15 +85,15 @@ void cleanup() {
   sem_close(tx_pool_full);
   sem_close(tx_pool_mutex);
   sem_close(ledger_mutex);
-  sem_close(min_tx);
   sem_close(pipe_mutex);
+  sem_close(hash_mutex);
   sem_unlink("LOG_MUTEX");
   sem_unlink("TX_POOL_EMPTY");
   sem_unlink("TX_POOL_FULL");
   sem_unlink("TX_POOL_MUTEX");
   sem_unlink("LEDGER_MUTEX");
-  sem_unlink("MIN_TX");
   sem_unlink("PIPE_MUTEX");
+  sem_unlink("HASH_MUTEX");
 }
 
 /*
@@ -110,13 +111,13 @@ void signals(int signum) {
     printf("*** STATISTICS ***\n");
 
     // Kill any active processes
-    kill(miner_pid, SIGKILL);
-    kill(statistics_pid, SIGKILL);
+    kill(miner_pid, SIGTERM);
+    kill(statistics_pid, SIGTERM);
     stop_validator_manager = 1;
     log_message("[Controlled] Waiting for subprocesses to finish executing", 'r', 1);
     for (int i = 0; i < 3; i++) {
       if (validator_pid[i] != 0)
-        kill(validator_pid[i], SIGKILL);
+        kill(validator_pid[i], SIGTERM);
     }
     while (wait(NULL) != -1);
 
@@ -147,32 +148,35 @@ void* manage_validation(void *args) {
 
   // Flags
   int aux1 = 0, aux2 = 0;
-  int sem_flag = 0;
 
   // Calculate the occupancy of the transaction pool (TODO -> implement synchronization)
   while (!stop_validator_manager) {
     sem_wait(tx_pool_mutex);
     int occupated_blocks = 0;
     for (int i = 0; i < size; i++) {
-      //printf("[Validator] Block %2d status: %d\n", i, tx_pool[i].empty);
+      // -- Debug messages to check the status of the Transactions Pool
+      /*
+      if (tx_pool[i].empty == 0)
+        printf("[Validator] Block %2d status: %s\n", i, tx_pool[i].tx.id);
+      else
+        printf("[Validator] Block %2d status: EMPTY\n", i);
+      */
       if (tx_pool[i].empty == 0)
         occupated_blocks++;
     }
     
     // When enough transactions are available
-    if (occupated_blocks >= tx_per_block && sem_flag == 0) {
+    if (occupated_blocks >= tx_per_block) {
       printf("[Controller] [Validator Manager] Signaling the miner threads\n");
-      
       // Signal all miner threads
       for (int i = 0; i < num_miners; i++) {
-        sem_post(min_tx);
+        //sem_post(min_tx);
+        kill(miner_pid, SIGUSR2);
       }
-      sem_flag = 1;
     }
     // When transactions drop below threshold => Reset the flag
-    else if (occupated_blocks < tx_per_block && sem_flag == 1) {
-      sem_flag = 0;
-    }
+    else if (occupated_blocks < tx_per_block)
+      printf("[DEBUG] [Validator Manager] *** Not enough transactions in the pool ***\n");
 
     int occupancy = (int)((float)occupated_blocks / size * 100);
     printf("[Controller] [Validator Manager] Current occupancy = %d\n", occupancy);
@@ -325,10 +329,10 @@ int main() {
   tx_pool_empty = sem_open("TX_POOL_EMPTY", O_CREAT | O_EXCL, 0700, tx_pool_size);
   sem_unlink("LEDGER_MUTEX");
   ledger_mutex = sem_open("LEDGER_MUTEX", O_CREAT | O_EXCL, 0700, 1);
-  sem_unlink("MIN_TX");
-  min_tx = sem_open("MIN_TX", O_CREAT | O_EXCL, 0700, 0);
   sem_unlink("PIPE_MUTEX");
   pipe_mutex = sem_open("PIPE_MUTEX", O_CREAT | O_EXCL, 0700, 1);
+  sem_unlink("HASH_MUTEX");
+  hash_mutex = sem_open("HASH_MUTEX", O_CREAT | O_EXCL, 0700, 1);
 
   // Create the message queue
   key_t msq_key = ftok("config.cfg", 'M');
@@ -398,7 +402,7 @@ int main() {
   // Simulated workload
   while (1) {
     printf("[Controller] Running...\n");
-    sleep(2);
+    sleep(3);
   }
   
   // Wait for the processes to finish (Temporary approach)

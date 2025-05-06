@@ -1,0 +1,25 @@
+[06/05/2025 - 21:41:23] [Controller] Process initialized (PID -> 1225)
+[06/05/2025 - 21:41:23] [Controller] Loaded num_miners = 5
+[06/05/2025 - 21:41:23] [Controller] Loaded tx_pool_size = 50
+[06/05/2025 - 21:41:23] [Controller] Loaded transactions_per_block = 10
+[06/05/2025 - 21:41:23] [Controller] Loaded blockchain_blocks = 50000
+[06/05/2025 - 21:41:23] [Controller] Transaction Pool created (shared memory)
+[06/05/2025 - 21:41:23] [Controller] Transaction Pool attached to shared memory
+[06/05/2025 - 21:41:23] [Controller] Blockchain Ledger created (shared memory)
+[06/05/2025 - 21:41:23] [Controller] Blockchain Ledger attached to the shared memory
+[06/05/2025 - 21:41:23] [Validator 1] Process initialized (PID -> 1227 | parent PID -> 1225)
+[06/05/2025 - 21:41:23] [Miner] Process initialized (PID -> 1226 | parent PID -> 1225)
+[06/05/2025 - 21:41:23] [Miner] Thread 5 initialized
+[06/05/2025 - 21:41:23] [Validator 1] Successfully opened the named pipe
+[06/05/2025 - 21:41:23] [Miner] Thread 4 initialized
+[06/05/2025 - 21:41:23] [Miner] Thread 1 initialized
+[06/05/2025 - 21:41:23] [Controller] Validator Manager launched successfully
+[06/05/2025 - 21:41:23] [Statistics] Process initialized (PID -> 1229 | parent PID -> 1225)
+[06/05/2025 - 21:41:23] [Miner] Thread 3 initialized
+[06/05/2025 - 21:41:23] [Miner] Thread 2 initialized
+[06/05/2025 - 21:41:25] [Controller] SIGINT received. Closing.
+[06/05/2025 - 21:41:25] [Controller] Printing simulation statistics
+[06/05/2025 - 21:41:25] [Controlled] Waiting for subprocesses to finish executing
+[06/05/2025 - 21:41:25] [Controller] Dumping the Blockchain Ledger
+[Controller] Dumping the Blockchain Ledger[Controller] Blockchain Ledger dumped successfully
+

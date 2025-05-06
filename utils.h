@@ -54,6 +54,6 @@ void print_block(TxBlock block, int tx_per_block);
 /*
   Auxiliary function that implements the aging mechanism of the Transactions Pool
 */
-void increment_age(TxPoolNode **tx_pool, int size);
+void increment_age(TxPoolNode *tx_pool, int size);
 
 #endif

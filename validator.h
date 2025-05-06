@@ -16,6 +16,6 @@ void validator();
   Auxiliary function to copy a Block from SRC to DEST, being DEST an
   address in the Blockchain Ledger
 */
-int save_block(TxBlock **ledger, TxBlock *src, int num_blocks, int tx_per_block);
+int save_block(TxBlock **ledger, TxBlock *src);
 
 #endif
