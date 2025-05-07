@@ -16,16 +16,11 @@ int get_max_transaction_reward(const TxBlock *block,
 
   int max_reward = 0;
   for (int i = 0; i < txs_per_block; ++i) {
-    if (block->transactions == NULL) {
-      printf("[DEBUG] *** NULL transaction\n");
-      return 0;
-    }
     int reward = block->transactions[i].reward;
     if (reward > max_reward) {
       max_reward = reward;
     }
   }
-  printf("[DEBUG] ********* GET MAX TRANSACTION REWARD *********\n");
   return max_reward;
 }
 
@@ -157,8 +152,8 @@ PoWResult proof_of_work(TxBlock *block) {
       result.error = 1;
       return result;
     }
-    if (DEBUG && block->nonce % 100000 == 0)
-      printf("Nounce %d\n", block->nonce);
+    //if (DEBUG && block->nonce % 100000 == 0)
+     // printf("Nounce %d\n", block->nonce);
     result.operations++;
   }
 }

@@ -36,12 +36,11 @@ extern sem_t *pipe_mutex;
 extern sem_t *hash_mutex;
 sem_t *console_mutex;
 
-extern char last_hash[HASH_SIZE];
+extern char *last_hash;
 
 int *signal_received;
 
 void min_tx_handler(int signum) {
-  printf("[DEBUG] {SIG_HANDLER} ********* SIGUSR2 captured *********\n");
   pthread_mutex_lock(&min_tx_mutex);
   for (int i = 0; i < num_miners; i++)
     signal_received[i] = 1;
@@ -61,6 +60,16 @@ void* miner_routine(void* miner_id) {
   // Miner thread routine
   int block_count = 0;
   while (1) {
+    // -- Check the available transactions
+    // printf("[DEBUG] *** Miner %d waiting for the transactions signal\n", id);
+    pthread_mutex_lock(&min_tx_mutex);
+    while (!signal_received[id-1]) {
+      pthread_cond_wait(&min_tx, &min_tx_mutex);
+    }
+    signal_received[id-1] = 0;
+    pthread_mutex_unlock(&min_tx_mutex);
+    // printf("[DEBUG] *** Miner %d received transactions signal\n", id);
+
     // -- Assemble a new block
     TxBlock block;
     char buf[64];
@@ -75,18 +84,6 @@ void* miner_routine(void* miner_id) {
 
     // -- Fill the block with transactions
     block.transactions = (Tx*)malloc(sizeof(Tx)*tx_per_block);
-    
-    // -- Check the available transactions
-    printf("[DEBUG] *** Miner %d waiting for the transactions signal\n", id);
-
-    pthread_mutex_lock(&min_tx_mutex);
-    while (!signal_received[id]) {
-      pthread_cond_wait(&min_tx, &min_tx_mutex);
-    }
-    signal_received[id] = 0;
-    pthread_mutex_unlock(&min_tx_mutex);
-
-    printf("[DEBUG] *** Miner %d received transactions signal\n", id);
     sem_wait(tx_pool_mutex);
 
     // -- Select transactions from the Transactions Pool

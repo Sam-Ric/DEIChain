@@ -151,7 +151,7 @@ Timestamp get_timestamp() {
   Auxiliary function to get the memory addresses of the blocks and the
   respective transactions in shared memory
 */
-void get_blockchain_mapping(TxBlock *blockchain_ledger, int num_blocks, int tx_per_block, TxBlock **blocks) {
+void get_blockchain_mapping(TxBlock *blockchain_ledger, int num_blocks, int tx_per_block, TxBlock **blocks, char **last_hash) {
   // Cursor with the shared memory's address
   char *cursor = (char*)blockchain_ledger;
   
@@ -161,10 +161,14 @@ void get_blockchain_mapping(TxBlock *blockchain_ledger, int num_blocks, int tx_p
 
   // Assign the transactions array
   Tx *transactions = (Tx*)cursor;
+  cursor += sizeof(Tx) * tx_per_block * num_blocks;
+
+  // Assign the last validated hash string
+  *last_hash = cursor;
 
   // Map each block's transactions array
   for (int i = 0; i < num_blocks; i++)
-    (*blocks)[i].transactions = transactions + i * (sizeof(Tx) * tx_per_block);
+    (*blocks)[i].transactions = transactions + i * tx_per_block;
 }
 
 
@@ -265,35 +269,35 @@ void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block) {
 */
 void print_block(TxBlock block, int tx_per_block) {
   char buffer[2000];
-    snprintf(buffer, sizeof(buffer),
-        "\n┌────────────────────────────────────────────────────────────────────────┐\n"
-        "│                            Block %-4d                                  │\n"
-        "├────────────────────────────────────────────────────────────────────────┤\n"
-        "│ Block ID: %-30s                               │\n"
-        "│ Previous Hash:                                                         │\n"
-        "│   %-69s│\n"
-        "│ Block Timestamp: %02d:%02d:%02d                                              │\n"
-        "│ Nonce: %-10d                                                      │\n"
-        "├────────────────────────────────────────────────────────────────────────┤\n"
-        "│                          Transactions                                  │\n"
-        "├────────────────────┬──────────────┬───────────────┬────────────────────┤\n"
-        "│ TX ID              │ Reward       │ Value         │ Timestamp          │\n"
-        "├────────────────────┼──────────────┼───────────────┼────────────────────┤\n",
-        0, block.id, block.previous_block_hash, block.timestamp.hour, block.timestamp.min,
-        block.timestamp.sec, block.nonce
-    );
-    printf(buffer);
-    // Print Transactions for the Block
-    for (int j = 0; j < tx_per_block; j++) {
-      Tx tx = block.transactions[j];
-      if (tx.reward > 0 && tx.reward < 4) {
-        sprintf(buffer, "│ %-11s        │ %-1d            │ %6.2lf        │ %02d:%02d:%02d           │\n",
-          tx.id, tx.reward, tx.value, tx.timestamp.hour, tx.timestamp.min, tx.timestamp.sec);
-        printf(buffer);
-      }
+  snprintf(buffer, sizeof(buffer),
+      "\n┌────────────────────────────────────────────────────────────────────────┐\n"
+      "│                            Block %-4d                                  │\n"
+      "├────────────────────────────────────────────────────────────────────────┤\n"
+      "│ Block ID: %-30s                               │\n"
+      "│ Previous Hash:                                                         │\n"
+      "│   %-69s│\n"
+      "│ Block Timestamp: %02d:%02d:%02d                                              │\n"
+      "│ Nonce: %-10d                                                      │\n"
+      "├────────────────────────────────────────────────────────────────────────┤\n"
+      "│                          Transactions                                  │\n"
+      "├────────────────────┬──────────────┬───────────────┬────────────────────┤\n"
+      "│ TX ID              │ Reward       │ Value         │ Timestamp          │\n"
+      "├────────────────────┼──────────────┼───────────────┼────────────────────┤\n",
+      0, block.id, block.previous_block_hash, block.timestamp.hour, block.timestamp.min,
+      block.timestamp.sec, block.nonce
+  );
+  printf(buffer);
+  // Print Transactions for the Block
+  for (int j = 0; j < tx_per_block; j++) {
+    Tx tx = block.transactions[j];
+    if (tx.reward > 0 && tx.reward < 4) {
+      sprintf(buffer, "│ %-11s        │ %-1d            │ %6.2lf        │ %02d:%02d:%02d           │\n",
+        tx.id, tx.reward, tx.value, tx.timestamp.hour, tx.timestamp.min, tx.timestamp.sec);
+      printf(buffer);
     }
-    sprintf(buffer, "└────────────────────┴──────────────┴───────────────┴────────────────────┘\n");
-    printf(buffer);
+  }
+  sprintf(buffer, "└────────────────────┴──────────────┴───────────────┴────────────────────┘\n");
+  printf(buffer);
 }
 
 /*

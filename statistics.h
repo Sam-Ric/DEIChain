@@ -10,4 +10,14 @@
 
 void statistics();
 
+/*
+  Prints the simulation statistics
+*/
+void print_statistics();
+
+/*
+  Calculate the number of seconds between two timestamps
+*/
+double calc_timestamp_difference(Timestamp t1, Timestamp t2);
+
 #endif

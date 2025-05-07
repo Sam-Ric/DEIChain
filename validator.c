@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <semaphore.h>
+#include <sys/msg.h>
 
 #include "utils.h"
 #include "validator.h"
@@ -30,7 +31,9 @@ extern sem_t *tx_pool_empty;
 extern sem_t *pipe_mutex;
 extern sem_t *hash_mutex;
 
-extern char last_hash[HASH_SIZE];
+extern int msq_id;
+
+extern char *last_hash;
 
 void validator(int id) {
   // Process initialization
@@ -179,6 +182,18 @@ void validator(int id) {
       sprintf(msg, "[Validator %d] Block %s validated successfully", id, block.id);
       log_message(msg, 'r', DEBUG);
     }
+
+    // Send the results to the statistics process
+    Message to_send;
+    to_send.miner_id = miner_id;
+    to_send.msgtype = 1;
+    to_send.valid_block = is_valid;
+    if (is_valid) {
+      to_send.creation_time = recv->block.timestamp;
+      to_send.validation_time = get_timestamp();
+      to_send.credits = total_reward;
+    }
+    msgsnd(msq_id, &to_send, sizeof(Message) - sizeof(long), 0);
 
     free(block.transactions);
     free(recv);

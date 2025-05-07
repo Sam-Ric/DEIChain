@@ -39,7 +39,7 @@ Timestamp get_timestamp();
   Auxiliary function to get the memory addresses of the blocks and the
   respective transactions in shared memory
 */
-void get_blockchain_mapping(TxBlock *blockchain_ledger, int num_blocks, int tx_per_block, TxBlock **blocks);
+void get_blockchain_mapping(TxBlock *blockchain_ledger, int num_blocks, int tx_per_block, TxBlock **blocks, char **last_hash);
 
 /*
   Auxiliar function to dump the data from the Blockchain Ledger

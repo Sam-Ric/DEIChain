@@ -74,7 +74,12 @@ struct MinerArgs {
 
 // Message Queue message format
 typedef struct {
-  
+  long msgtype;
+  int valid_block;
+  int miner_id;
+  int credits;
+  Timestamp creation_time;
+  Timestamp validation_time;
 } Message;
 
 typedef struct {

@@ -29,35 +29,36 @@
 #include "validator.h"
 
 // Semaphores and mutexes
-sem_t *log_mutex;
-sem_t *tx_pool_mutex;
-sem_t *tx_pool_full;
-sem_t *tx_pool_empty;
-sem_t *ledger_mutex;
-sem_t *pipe_mutex;
-sem_t *hash_mutex;
+sem_t *log_mutex;         // Mutex to control writing to the log file
+sem_t *tx_pool_mutex;     // Mutex to control access to the Transactions Pool
+sem_t *tx_pool_full;      // Semaphore to control occupied slots in the Transactions Pool
+sem_t *tx_pool_empty;     // Semaphore to control available slots in the Transactions Pool
+sem_t *ledger_mutex;      // Mutex to control access to the Blockchain Ledger
+sem_t *pipe_mutex;        // Mutex to control access to the named pipe
+sem_t *hash_mutex;        // (TEMP)
+sem_t *stats_mutex;       // Mutex to control access to statistics metrics
+sem_t *stats_done;
 
 // Shared memory IDs
-int tx_pool_id;
-int blockchain_ledger_id;
-TxPoolNode *tx_pool;
-TxBlock *blockchain_ledger;
-TxBlock *blocks;
+int tx_pool_id;               // ID of the Transaction Pool's shared memory
+int blockchain_ledger_id;     // ID of the Blockchain Ledger's shared memory
+TxPoolNode *tx_pool;          // Transactions Pool shared memory pointer (structs array)
+TxBlock *blockchain_ledger;   // Blockchain Ledger shared memory pointer (not mapped)
+TxBlock *blocks;              // Blockchain Ledger shared memory pointer (mapped)
 
-// Message queue ID
-int msq_id;
+int msq_id;        // Message queue ID
 
 // Process IDs
 pid_t miner_pid, statistics_pid, validator_pid[3];
 
 // Global variables
-int num_miners;
-int tx_pool_size;
-int tx_per_block;
-int blockchain_blocks;
-int stop_validator_manager;
-FILE *log_file;
-char last_hash[HASH_SIZE] = "\0";
+int num_miners;                   // Number of miner threads
+int tx_pool_size;                 // Number of transaction slots in the Transactions Pool
+int tx_per_block;                 // Number of transactions per block
+int blockchain_blocks;            // Number of block slots in the Blockchain Ledger
+int stop_validator_manager;       // Flag to stop the validator manager
+FILE *log_file;                   // File pointer of the log file
+char *last_hash;
 
 void cleanup() {
   // Close the log file
@@ -65,11 +66,11 @@ void cleanup() {
 
   // Detaching and removing shared memory
   if (tx_pool_id >= 0) {
-    shmdt(&tx_pool_id);
+    shmdt(tx_pool);
     shmctl(tx_pool_id, IPC_RMID, NULL);
   }
   if (blockchain_ledger_id >= 0) {
-    shmdt(&blockchain_ledger_id);
+    shmdt(blockchain_ledger);
     shmctl(blockchain_ledger_id, IPC_RMID, NULL);
   }
 
@@ -87,6 +88,8 @@ void cleanup() {
   sem_close(ledger_mutex);
   sem_close(pipe_mutex);
   sem_close(hash_mutex);
+  sem_close(stats_mutex);
+  sem_close(stats_done);
   sem_unlink("LOG_MUTEX");
   sem_unlink("TX_POOL_EMPTY");
   sem_unlink("TX_POOL_FULL");
@@ -94,6 +97,8 @@ void cleanup() {
   sem_unlink("LEDGER_MUTEX");
   sem_unlink("PIPE_MUTEX");
   sem_unlink("HASH_MUTEX");
+  sem_unlink("STATS_MUTEX");
+  sem_unlink("STATS_DONE");
 }
 
 /*
@@ -106,18 +111,24 @@ void signals(int signum) {
     log_message("[Controller] SIGINT received. Closing.", 'r', 1);
 
     // Printing simulation statistics
-    /* --- STATISTICS ---*/
-    log_message("[Controller] Printing simulation statistics", 'r', 1);
-    printf("*** STATISTICS ***\n");
+    kill(statistics_pid, SIGUSR1);
+    sem_wait(stats_done);
+
+    // Remove the named pipe to prevent the validators from blocking
+    int fd = open(PIPE_NAME, O_WRONLY | O_NONBLOCK);
+    if (fd >= 0) {
+      close(fd);
+    }
+    unlink(PIPE_NAME);
 
     // Kill any active processes
-    kill(miner_pid, SIGTERM);
-    kill(statistics_pid, SIGTERM);
+    kill(miner_pid, SIGKILL);
+    kill(statistics_pid, SIGKILL);
     stop_validator_manager = 1;
     log_message("[Controlled] Waiting for subprocesses to finish executing", 'r', 1);
     for (int i = 0; i < 3; i++) {
       if (validator_pid[i] != 0)
-        kill(validator_pid[i], SIGTERM);
+        kill(validator_pid[i], SIGKILL);
     }
     while (wait(NULL) != -1);
 
@@ -131,10 +142,9 @@ void signals(int signum) {
     exit(0);
   }
 
-  // Calculating and printing statistics
   if (signum == SIGUSR1) {
-    /* --- STATISTICS ---*/
-    printf("*** STATISTICS ***\n");
+    kill(statistics_pid, SIGUSR1);
+    sem_wait(stats_done);
   }
 }
 
@@ -169,10 +179,7 @@ void* manage_validation(void *args) {
     if (occupated_blocks >= tx_per_block) {
       printf("[Controller] [Validator Manager] Signaling the miner threads\n");
       // Signal all miner threads
-      for (int i = 0; i < num_miners; i++) {
-        //sem_post(min_tx);
-        kill(miner_pid, SIGUSR2);
-      }
+      kill(miner_pid, SIGUSR2);
     }
     // When transactions drop below threshold => Reset the flag
     else if (occupated_blocks < tx_per_block)
@@ -246,8 +253,8 @@ int main() {
   // Ignore the signals until everything is properly initialized
   struct sigaction act;
   act.sa_handler = SIG_IGN;
-  sigaction(SIGINT, &act, NULL);
-  sigaction(SIGUSR1, &act, NULL);
+  for (int i = 0; i < _NSIG; i++)
+    sigaction(i, &act, NULL);
 
   // Reading the configuration file, initializing the variables
   load_config(&num_miners, &tx_pool_size, &tx_per_block, &blockchain_blocks);
@@ -289,7 +296,7 @@ int main() {
   
 
   // -- Create the Blockchain Ledger
-  size = (sizeof(TxBlock) + sizeof(Tx) * tx_per_block) * blockchain_blocks;
+  size = (sizeof(TxBlock) + sizeof(Tx) * tx_per_block) * blockchain_blocks + HASH_SIZE;
   if ((blockchain_ledger_id = shmget(IPC_PRIVATE, size, IPC_CREAT | 0766)) < 0) {
     log_message("[Controller] Error creating the Blockchain Ledger", 'w', 1);
     cleanup();
@@ -306,7 +313,7 @@ int main() {
   log_message("[Controller] Blockchain Ledger attached to the shared memory", 'r', DEBUG);
 
   // -- Map the Blockchain Ledger elements in shared memory
-  get_blockchain_mapping(blockchain_ledger, blockchain_blocks, tx_per_block, &blocks);
+  get_blockchain_mapping(blockchain_ledger, blockchain_blocks, tx_per_block, &blocks, &last_hash);
 
   // -- Initialize the Ledger's blocks
   Timestamp t;
@@ -319,6 +326,7 @@ int main() {
     blocks[i].timestamp = t;
     blocks[i].nonce = 0;
   }
+  last_hash[0] = '\0';
 
   // Create semaphores and mutexes
   sem_unlink("TX_POOL_MUTEX");
@@ -333,6 +341,11 @@ int main() {
   pipe_mutex = sem_open("PIPE_MUTEX", O_CREAT | O_EXCL, 0700, 1);
   sem_unlink("HASH_MUTEX");
   hash_mutex = sem_open("HASH_MUTEX", O_CREAT | O_EXCL, 0700, 1);
+  sem_unlink("STATS_MUTEX");
+  stats_mutex = sem_open("STATS_MUTEX", O_CREAT | O_EXCL, 0700, 1);
+  sem_unlink("STATS_DONE");
+  stats_done = sem_open("STATS_DONE", O_CREAT | O_EXCL, 0700, 0);
+
 
   // Create the message queue
   key_t msq_key = ftok("config.cfg", 'M');
@@ -398,14 +411,8 @@ int main() {
   act.sa_handler = signals;
   sigaction(SIGINT, &act, NULL);
   sigaction(SIGUSR1, &act, NULL);
-
-  // Simulated workload
-  while (1) {
-    printf("[Controller] Running...\n");
-    sleep(3);
-  }
   
-  // Wait for the processes to finish (Temporary approach)
+  // Wait for the processes to finish
   for (int i = 0; i < 3; i++)
     wait(NULL);
   log_message("[Controller] All subprocesses have been terminated", 'r', DEBUG);
