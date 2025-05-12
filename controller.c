@@ -35,9 +35,10 @@ sem_t *tx_pool_full;      // Semaphore to control occupied slots in the Transact
 sem_t *tx_pool_empty;     // Semaphore to control available slots in the Transactions Pool
 sem_t *ledger_mutex;      // Mutex to control access to the Blockchain Ledger
 sem_t *pipe_mutex;        // Mutex to control access to the named pipe
-sem_t *hash_mutex;        // (TEMP)
+sem_t *hash_mutex;        // Mutex to control access to the hash of the last validated block
 sem_t *stats_mutex;       // Mutex to control access to statistics metrics
-sem_t *stats_done;
+sem_t *stats_done;        // Semaphore to block other processes while the statistics are being printed
+sem_t *check_occupancy;   // Semaphore to avoid busy waiting on the Validator Manager thread
 
 // Shared memory IDs
 int tx_pool_id;               // ID of the Transaction Pool's shared memory
@@ -90,6 +91,7 @@ void cleanup() {
   sem_close(hash_mutex);
   sem_close(stats_mutex);
   sem_close(stats_done);
+  sem_close(check_occupancy);
   sem_unlink("LOG_MUTEX");
   sem_unlink("TX_POOL_EMPTY");
   sem_unlink("TX_POOL_FULL");
@@ -99,6 +101,7 @@ void cleanup() {
   sem_unlink("HASH_MUTEX");
   sem_unlink("STATS_MUTEX");
   sem_unlink("STATS_DONE");
+  sem_unlink("CHECK_OCCUPANCY");
 }
 
 /*
@@ -114,12 +117,14 @@ void signals(int signum) {
     kill(statistics_pid, SIGUSR1);
     sem_wait(stats_done);
 
-    // Remove the named pipe to prevent the validators from blocking
+    // Properly close the pipe to unblock any readers
     int fd = open(PIPE_NAME, O_WRONLY | O_NONBLOCK);
     if (fd >= 0) {
+      // Write something to unblock readers if needed
+      char dummy = 0;
+      write(fd, &dummy, 0);  // Zero-length write
       close(fd);
     }
-    unlink(PIPE_NAME);
 
     // Kill any active processes
     kill(miner_pid, SIGKILL);
@@ -161,6 +166,7 @@ void* manage_validation(void *args) {
 
   // Calculate the occupancy of the transaction pool (TODO -> implement synchronization)
   while (!stop_validator_manager) {
+    sem_wait(check_occupancy); // -> Block until there is the need to check the pool's occupancy
     sem_wait(tx_pool_mutex);
     int occupated_blocks = 0;
     for (int i = 0; i < size; i++) {
@@ -191,12 +197,12 @@ void* manage_validation(void *args) {
     if (occupancy < 40 && (aux1 == 1 || aux2 == 1)) {
       log_message("[Controller] [Validator Manager] Occupancy dropped below 40%. Terminating the additional Validator processes", 'r', DEBUG);
       if (aux1 == 1) {
-        kill(validator_pid[1], SIGTERM);
+        kill(validator_pid[1], SIGKILL);
         aux1 = 0;
         validator_pid[1] = 0;
       }
       if (aux2 == 1) {
-        kill(validator_pid[2], SIGTERM);
+        kill(validator_pid[2], SIGKILL);
         aux2 = 0;
         validator_pid[2] = 0;
       }
@@ -345,7 +351,8 @@ int main() {
   stats_mutex = sem_open("STATS_MUTEX", O_CREAT | O_EXCL, 0700, 1);
   sem_unlink("STATS_DONE");
   stats_done = sem_open("STATS_DONE", O_CREAT | O_EXCL, 0700, 0);
-
+  sem_unlink("CHECK_OCCUPANCY");
+  check_occupancy = sem_open("CHECK_OCCUPANCY", O_CREAT | O_EXCL, 0700, 0);
 
   // Create the message queue
   key_t msq_key = ftok("config.cfg", 'M');

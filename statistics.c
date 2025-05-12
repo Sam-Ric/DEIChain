@@ -127,6 +127,7 @@ void print_statistics(int signum) {
 
   sprintf(buffer, "└────────────┴───────────────┴────────────────┴──────────────────────────┘\n");
   fprintf(log_file, buffer);
+  fflush(log_file);
   printf(buffer);
   sem_post(stats_mutex);
   sem_post(stats_done);

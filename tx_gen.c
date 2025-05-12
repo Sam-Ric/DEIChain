@@ -76,6 +76,11 @@ int main(int argc, char *argv[]) {
     printf("\x1b[31m[!]\x1b[0m tx_pool_empty not initialized yet. The Controller process has not been launched. Closing.\n");
     exit(-1);
   }
+  sem_t *check_occupancy = sem_open("CHECK_OCCUPANCY", 0);
+  if (check_occupancy == SEM_FAILED) {
+    printf("\x1b[31m[!]\x1b[0m check_occupancy not initialized yet. The Controller process has not been launched. Closing.\n");
+    exit(-1);
+  }
 
 
   // Transaction Pool 
@@ -139,7 +144,7 @@ int main(int argc, char *argv[]) {
     sem_post(tx_pool_full);
     if (DEBUG)
       printf("[Tx Gen] [PID %d] Transaction successfully written to the Transaction Pool.\n", getpid());
-
+    sem_post(check_occupancy);  // -> Unblock the Validator Manager to check the pool's occupancy
     sleep(2); // -- TODO: revert the sleep time back to 'sleeptime'
   }
 

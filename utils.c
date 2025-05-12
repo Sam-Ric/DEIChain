@@ -190,27 +190,6 @@ void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block) {
   // Open the log file
   sem_wait(ledger_mutex);
   sem_wait(log_mutex);
-
-  // Create dummy blocks for testing purposes
-  /*
-  srand(time(NULL));
-  for (int x = 0; x < 10; x++) {
-    TxBlock *block = &blocks[x];
-    char temp[64];
-    sprintf(temp, "BLOCK-%d-%d", rand() % 1000 + 1000, rand() % 100 + 1);
-    strcpy(block->id, temp);
-    strcpy(block->previous_block_hash, "00006a8e76f31ba74e21a092cca1015a418c9d5f4375e7a4fec676e1d2ec1436");
-    block->timestamp = get_timestamp();
-    block->nonce = rand() % 1680540;
-    for (int i = 0; i < 3; i++) {
-      sprintf(temp, "TX-%d-%d", rand() % 1000 + 1000, rand() % 100 + 1);
-      strcpy(block->transactions[i].id, temp);
-      block->transactions[i].reward = rand() % 2 + 1;
-      block->transactions[i].value = (double)(rand() % 100 + 1);
-      block->transactions[i].timestamp = get_timestamp();
-    }
-  }
-  */
   
   FILE *log_file = fopen("DEIChain_log.txt", "a");
   if (log_file == NULL) {
@@ -258,7 +237,7 @@ void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block) {
     fprintf(log_file, buffer);
     printf(buffer);
   }
-  fprintf(log_file, "[Controller] Blockchain Ledger dumped successfully\n\n");
+  fprintf(log_file, "\n[Controller] Blockchain Ledger dumped successfully\n\n");
   fclose(log_file);
   sem_post(log_mutex);
   sem_post(ledger_mutex);

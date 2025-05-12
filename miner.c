@@ -28,13 +28,15 @@ pthread_cond_t min_tx = PTHREAD_COND_INITIALIZER;
 extern int num_miners;
 extern int tx_per_block;
 extern int tx_pool_size;
+extern int blockchain_blocks;
 extern TxPoolNode *tx_pool;
 extern TxBlock *blocks;
+extern TxBlock *blockchain_ledger;
 
 extern sem_t *tx_pool_mutex;
 extern sem_t *pipe_mutex;
 extern sem_t *hash_mutex;
-sem_t *console_mutex;
+extern sem_t *check_occupancy;
 
 extern char *last_hash;
 
@@ -61,14 +63,28 @@ void* miner_routine(void* miner_id) {
   int block_count = 0;
   while (1) {
     // -- Check the available transactions
-    // printf("[DEBUG] *** Miner %d waiting for the transactions signal\n", id);
+    if (DEBUG)
+      printf("    [Miner Thread %d] *** Miner %d waiting for the transactions signal\n", id, id);
+    sem_post(check_occupancy);  // -> Unblock the Validator Manager to check the pool's occupancy
     pthread_mutex_lock(&min_tx_mutex);
     while (!signal_received[id-1]) {
       pthread_cond_wait(&min_tx, &min_tx_mutex);
     }
     signal_received[id-1] = 0;
     pthread_mutex_unlock(&min_tx_mutex);
-    // printf("[DEBUG] *** Miner %d received transactions signal\n", id);
+    if (DEBUG)
+      printf("    [Miner Thread %d] *** Miner %d received transactions signal\n", id, id);
+
+    // -- Ensure that there are enough transactions in the pool before assembling the block
+    sem_wait(tx_pool_mutex);
+    int available_tx = 0;
+    for (int i = 0; i < tx_pool_size; i++)
+      if (tx_pool[i].empty == 0) available_tx++;
+    sem_post(tx_pool_mutex);
+
+    // -- Not enough transactions => go back to waiting
+    if (available_tx < tx_per_block)
+      continue;
 
     // -- Assemble a new block
     TxBlock block;
@@ -87,7 +103,6 @@ void* miner_routine(void* miner_id) {
     sem_wait(tx_pool_mutex);
 
     // -- Select transactions from the Transactions Pool
-    //sem_wait(console_mutex);
     if (DEBUG)
       printf("[Miner Thread %d] Assembling block\n", id);
     int num_selected = 0;
@@ -98,7 +113,7 @@ void* miner_routine(void* miner_id) {
           continue;
 
         // -- Miners with even thread ID => prioritize easier transactions
-        if (/*id % 2 == */0) {
+        if (id % 2 == 0) {
           if (getDifficultFromReward(cur->tx.reward) == EASY) {
             strcpy(block.transactions[i].id, cur->tx.id);
             block.transactions[i].reward = cur->tx.reward;
@@ -110,9 +125,7 @@ void* miner_routine(void* miner_id) {
           }
         }
         // -- Miners with odd thread ID => prioritize selecting sequential transactions
-        else {
-
-        }
+        else {}
       }
     }
     // -- Select remaining transactions if there are empty slots in the block
@@ -140,10 +153,6 @@ void* miner_routine(void* miner_id) {
     sem_post(tx_pool_mutex);
 
     block.timestamp = get_timestamp();  // -> Assign the timestamp of the instant the block's assembly is completed
-
-    // -- Print the block (DEBUG)
-    // print_block(block, tx_per_block);
-    // sem_post(console_mutex);
 
     // Get the miner to perform the PoW step
     sprintf(msg, "[Miner Thread %d] Started mining block %s", id, block.id);
@@ -227,7 +236,11 @@ void miner(struct MinerArgs args) {
     printf("\x1b[31m[!]\x1b[0m tx_pool_mutex not initialized yet. Closing.\n");
     exit(-1);
   }
-  console_mutex = sem_open("CONSOLE_MUTEX", O_CREAT, 0700, 1);
+
+  // Re-map shared memory to get consistent pointers
+  TxBlock *blocks;
+  char *last_hash;
+  get_blockchain_mapping(blockchain_ledger, blockchain_blocks, tx_per_block, &blocks, &last_hash);
   
   // Create the miner threads
   int miner_id[num_miners];

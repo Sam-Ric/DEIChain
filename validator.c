@@ -24,12 +24,14 @@ extern int tx_pool_size;
 extern int blockchain_blocks;
 extern TxPoolNode *tx_pool;
 extern TxBlock *blocks;
+extern TxBlock *blockchain_ledger;
 
 extern sem_t *ledger_mutex;
 extern sem_t *tx_pool_mutex;
 extern sem_t *tx_pool_empty;
 extern sem_t *pipe_mutex;
 extern sem_t *hash_mutex;
+extern sem_t *check_occupancy;
 
 extern int msq_id;
 
@@ -48,6 +50,11 @@ void validator(int id) {
     log_message(msg, 'w', 1);
     return;
   }
+
+  // Re-map shared memory to get consistent pointers
+  TxBlock *blocks;
+  char *last_hash;
+  get_blockchain_mapping(blockchain_ledger, blockchain_blocks, tx_per_block, &blocks, &last_hash);
 
   sprintf(msg, "[Validator %d] Successfully opened the named pipe", id);
   log_message(msg, 'r', DEBUG);
@@ -83,44 +90,37 @@ void validator(int id) {
     log_message(msg, 'r', DEBUG);
 
     // -- Verify the block's PoW
-    printf("[DEBUG] [Validator %d] *** Verifing the block's PoW...\n", id);
     PoWResult result;
     do {
       result = proof_of_work(&block);
     } while (result.error == 1);
     if (strcmp(recv->result_hash, result.hash) != 0) {
       is_valid = 0;
-      printf("\x1b[31m[DEBUG] [Validator %d] Block %s invalid: Invalid PoW\x1b[0m\n", id, block.id);
-      printf("\x1b[31m[DEBUG]                  recv hash = %s\x1b[0m\n", recv->result_hash);
-      printf("\x1b[31m[DEBUG]                result hash = %s\x1b[0m\n", result.hash);
+      if (DEBUG) {
+        sprintf(msg, "[Validator %d] Block %s invalid: Invalid PoW", id, block.id);
+        log_message(msg, 'w', 1);
+      }
     }
 
     // Check if the previous block hash matches the hash of the last block added to the ledger
     if (is_valid) {
-      printf("[DEBUG] [Validator %d] *** Checking hash...\n", id);
       // -- If the current block is not the first block on the ledger, check the hash
       sem_wait(hash_mutex);
       if (last_hash[0] != '\0')
         if (strcmp(last_hash, block.previous_block_hash) != 0) {
           is_valid = 0;
-          printf("\x1b[31m[Validator %d] Block %s invalid: Previous block hash does not match the last block's hash\x1b[0m\n", id, block.id);
-          printf("\x1b[31m[DEBUG]                     prev hash = %s\x1b[0m\n", block.previous_block_hash);
-          printf("\x1b[31m[DEBUG]             correct prev hash = %s\x1b[0m\n", last_hash);
+          sprintf(msg, "[Validator %d] Block %s invalid: Previous block hash does not match the last block's hash", id, block.id);
+          log_message(msg, 'w', 1);
         }
       sem_post(hash_mutex);
     }
 
     // -- Check if the transactions are still in the transactions pool
     if (is_valid) {
-      printf("[DEBUG] [Validator %d] *** Checking if the transactions are still in the transactions pool\n", id);
       sem_wait(tx_pool_mutex);
       for (int i = 0; i < tx_per_block; i++) {
         int found = 0;
         Tx cur_tx = block.transactions[i];
-        // printf("[DEBUG] [Validator] *** Checking transaction %s\n", cur_tx.id);
-        // printf("        reward=%d\n", cur_tx.reward);
-        // printf("        value=%lf\n", cur_tx.value);
-        // printf("        timestamp=%d:%d:%d\n", cur_tx.timestamp.hour, cur_tx.timestamp.min, cur_tx.timestamp.sec);
         for (int j = 0; j < tx_pool_size; j++) {
           TxPoolNode *cur_node = &tx_pool[j];
           if (cur_node->empty == 0 && strcmp(cur_node->tx.id, cur_tx.id) == 0) {
@@ -131,7 +131,8 @@ void validator(int id) {
 
         if (!found) {
           is_valid = 0;
-          printf("\x1b[31m[Validator %d] Block %s invalid: Transaction %s not in the pool\x1b[0m\n", id, block.id, cur_tx.id);
+          sprintf(msg, "[Validator %d] Block %s invalid: Transaction %s not in the pool", id, block.id, cur_tx.id);
+          log_message(msg, 'w', 1);
           break;
         }
       }
@@ -141,22 +142,22 @@ void validator(int id) {
 
     // -- Calculate the reward
     int total_reward = 0;
-    if (is_valid) {
-      printf("[DEBUG] [Validator %d] *** Calculating the reward\n", id);
+    if (is_valid)
       total_reward = get_max_transaction_reward(&block, tx_per_block);
-    }
-    printf("[DEBUG] [Validator %d] total_reward = %d\n", id, total_reward);
 
     if (is_valid) {
       // -- Place the validated block on the ledger
-      printf("[DEBUG] [Validator] *** Saving block to the ledger...\n");
       sem_wait(ledger_mutex);
       int saved = save_block(&blocks, &block);
       sem_post(ledger_mutex);
-      if (saved)
-        printf("[DEBUG] [Validator] *** Block saved to the ledger successfully\n");
-      else
-        printf("\x1b[31m[DEBUG] [Validator] *** Error saving the block to the ledger\x1b[0m\n");
+      if (saved) {
+        sprintf(msg, "[Validator %d] Block %s added to the ledger", id, block.id);
+        log_message(msg, 'r', DEBUG);
+      }
+      else {
+        sprintf(msg, "[Validator %d] Error saving block %s to the ledger", id, block.id);
+        log_message(msg, 'w', 1);
+      }
 
       // -- Remove the block's transactions from the pool
       sem_wait(tx_pool_mutex);
@@ -177,10 +178,9 @@ void validator(int id) {
       sem_wait(hash_mutex);
       strcpy(last_hash, result.hash);
       sem_post(hash_mutex);
-      printf("\x1b[33m[DEBUG] [Validator %d] Updated last hash => %s\x1b[0m\n", id, result.hash);
-
       sprintf(msg, "[Validator %d] Block %s validated successfully", id, block.id);
       log_message(msg, 'r', DEBUG);
+      sem_post(check_occupancy);  // -> Unblock the Validator Manager to check the pool's occupancy
     }
 
     // Send the results to the statistics process
