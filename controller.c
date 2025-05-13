@@ -48,6 +48,8 @@ TxBlock *blocks;              // Blockchain Ledger shared memory pointer (mapped
 
 int msq_id;        // Message queue ID
 
+int handling_sigusr1 = 0;
+
 // Process IDs
 pid_t controller_pid, miner_pid, statistics_pid, validator_pid[3];
 
@@ -145,8 +147,12 @@ void signals(int signum) {
   }
 
   if (signum == SIGUSR1) {
+    if (handling_sigusr1)
+      return;
+    handling_sigusr1 = 1;
     kill(statistics_pid, SIGUSR1);
     sem_wait(stats_done);
+    handling_sigusr1 = 0;
   }
 }
 

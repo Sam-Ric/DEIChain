@@ -8,7 +8,7 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
-#define DEBUG 0
+#define DEBUG 1
 #define TXB_ID_LEN 64
 #define PIPE_NAME "/tmp/VALIDATOR_INPUT"
 #define HASH_SIZE 65

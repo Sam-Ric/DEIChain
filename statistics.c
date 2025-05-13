@@ -29,6 +29,8 @@ extern pid_t controller_pid;
 extern int num_miners;
 extern int blockchain_blocks;
 
+int stats_in_progress = 0;
+
 // Statistic Metrics
 int *valid_blocks_per_miner;   // Number of valid blocks submitterd by each Miner to the Validator
 int *invalid_block_per_miner;  // Number of invalid blocks submitted by each Miner to the Validator
@@ -100,6 +102,9 @@ void statistics() {
   Prints the simulation statistics
 */
 void print_statistics(int signum) {
+  if (stats_in_progress)
+    return;
+  stats_in_progress = 1;
   log_message("[Statistics] Printing statistics...", 'r', 1);
   char buffer[2000];
   snprintf(buffer, sizeof(buffer),
@@ -133,6 +138,7 @@ void print_statistics(int signum) {
   fflush(log_file);
   printf(buffer);
   sem_post(stats_done);
+  stats_in_progress = 0;
 }
 
 /*
