@@ -8,7 +8,7 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
-#define DEBUG 1
+#define DEBUG 0
 #define TXB_ID_LEN 64
 #define PIPE_NAME "/tmp/VALIDATOR_INPUT"
 #define HASH_SIZE 65
@@ -62,15 +62,6 @@ typedef struct {
   int reward;
   int max_operations;
 } PoW;
-
-// Miner Shared Memory data
-struct MinerArgs {
-  int num_miners;
-  TxPoolNode *tx_pool;
-  int tx_pool_size;
-  int tx_per_block;
-  TxBlock *blocks;
-};
 
 // Message Queue message format
 typedef struct {

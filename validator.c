@@ -87,7 +87,7 @@ void validator(int id) {
     memcpy(block.transactions, recv->transactions, tx_per_block * sizeof(Tx));
 
     sprintf(msg, "[Validator %d] Received block %s for validation from miner %d", id, block.id, miner_id);
-    log_message(msg, 'r', DEBUG);
+    log_message(msg, 'r', 1);
 
     // -- Verify the block's PoW
     PoWResult result;
@@ -143,7 +143,8 @@ void validator(int id) {
     // -- Calculate the reward
     int total_reward = 0;
     if (is_valid)
-      total_reward = get_max_transaction_reward(&block, tx_per_block);
+      for (int i = 0; i < tx_per_block; i++)
+        total_reward += block.transactions[i].reward;
 
     if (is_valid) {
       // -- Place the validated block on the ledger
@@ -179,7 +180,7 @@ void validator(int id) {
       strcpy(last_hash, result.hash);
       sem_post(hash_mutex);
       sprintf(msg, "[Validator %d] Block %s validated successfully", id, block.id);
-      log_message(msg, 'r', DEBUG);
+      log_message(msg, 'r', 1);
       sem_post(check_occupancy);  // -> Unblock the Validator Manager to check the pool's occupancy
     }
 

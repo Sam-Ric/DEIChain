@@ -22,12 +22,12 @@
 
 extern FILE *log_file;
 
-extern sem_t *stats_mutex;
 extern sem_t *stats_done;
 
 extern int msq_id;
-
+extern pid_t controller_pid;
 extern int num_miners;
+extern int blockchain_blocks;
 
 // Statistic Metrics
 int *valid_blocks_per_miner;   // Number of valid blocks submitterd by each Miner to the Validator
@@ -74,7 +74,6 @@ void statistics() {
     if (DEBUG)
       printf("    [Statistics] Calculating statistics...\n");
     // -- Update the variables
-    sem_wait(stats_mutex);
     total_block_count++;
     int miner_index = recv.miner_id - 1;
     if (recv.valid_block) {
@@ -85,7 +84,12 @@ void statistics() {
       credits_per_miner[miner_index] += recv.credits;
     } else
       invalid_block_per_miner[miner_index]++;
-    sem_post(stats_mutex);
+    if (blockchain_count == blockchain_blocks) {
+      log_message("[Statistics] Blockchain Ledger is full. Closing...", 'r', 1);
+      kill(controller_pid, SIGINT);
+    }
+    if (DEBUG)
+      printf("    [Statistics] Statistics calculated succesfully\n");
   }
 
   // Process termination
@@ -97,7 +101,6 @@ void statistics() {
 */
 void print_statistics(int signum) {
   log_message("[Statistics] Printing statistics...", 'r', 1);
-  sem_wait(stats_mutex);
   char buffer[2000];
   snprintf(buffer, sizeof(buffer),
       "\n┌────────────────────────────────────────────────────────────────────────┐\n"
@@ -129,7 +132,6 @@ void print_statistics(int signum) {
   fprintf(log_file, buffer);
   fflush(log_file);
   printf(buffer);
-  sem_post(stats_mutex);
   sem_post(stats_done);
 }
 

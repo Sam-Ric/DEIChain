@@ -55,7 +55,7 @@ void* miner_routine(void* miner_id) {
   int id = *(int*)miner_id;
   char msg[BUF_SIZE];
   sprintf(msg, "[Miner] Thread %d initialized", id);
-  log_message(msg, 'r', DEBUG);
+  log_message(msg, 'r', 1);
 
   int fd = open(PIPE_NAME, O_WRONLY);
 
@@ -114,7 +114,7 @@ void* miner_routine(void* miner_id) {
 
         // -- Miners with even thread ID => prioritize easier transactions
         if (id % 2 == 0) {
-          if (getDifficultFromReward(cur->tx.reward) == EASY) {
+          if (cur->selected == 0 && (cur->tx.reward) == EASY) {
             strcpy(block.transactions[i].id, cur->tx.id);
             block.transactions[i].reward = cur->tx.reward;
             block.transactions[i].timestamp = cur->tx.timestamp;
@@ -125,7 +125,9 @@ void* miner_routine(void* miner_id) {
           }
         }
         // -- Miners with odd thread ID => prioritize selecting sequential transactions
-        else {}
+        else {
+
+        }
       }
     }
     // -- Select remaining transactions if there are empty slots in the block
@@ -156,7 +158,7 @@ void* miner_routine(void* miner_id) {
 
     // Get the miner to perform the PoW step
     sprintf(msg, "[Miner Thread %d] Started mining block %s", id, block.id);
-    log_message(msg, 'r', DEBUG);
+    log_message(msg, 'r', 1);
 
     PoWResult result;
     do {
@@ -176,7 +178,7 @@ void* miner_routine(void* miner_id) {
 
     // -- If the mining process succeeds
     sprintf(msg, "[Miner Thread %d] Successfully mined block %s", id, block.id);
-    log_message(msg, 'r', DEBUG);
+    log_message(msg, 'r', 1);
 
     // Send the block to the validators via Named Pipe
     PipeMsg *block_data = malloc(sizeof(PipeMsg) + tx_per_block * sizeof(Tx));
@@ -196,7 +198,7 @@ void* miner_routine(void* miner_id) {
     sem_post(pipe_mutex);
 
     sprintf(msg, "[Miner Thread %d] Sent block %s for validation", id, block.id);
-    log_message(msg, 'r', DEBUG);
+    log_message(msg, 'r', 1);
 
     // Prepare the assembly of the next block
     block_count++;
@@ -206,7 +208,7 @@ void* miner_routine(void* miner_id) {
   
   // Thread termination
   sprintf(msg, "[Miner] Thread %d terminated", id);
-  log_message(msg, 'r', DEBUG);
+  log_message(msg, 'r', 1);
   pthread_exit(NULL);
 }
 
@@ -216,7 +218,7 @@ void* miner_routine(void* miner_id) {
   reading transactions, grouping them into blocks and performing
   a PoW step.
 */
-void miner(struct MinerArgs args) {
+void miner() {
   // Process initialization
   pthread_t thread_id[num_miners];
   char msg[100];

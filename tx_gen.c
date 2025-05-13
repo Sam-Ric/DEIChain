@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
     if (DEBUG)
       printf("[Tx Gen] [PID %d] Transaction successfully written to the Transaction Pool.\n", getpid());
     sem_post(check_occupancy);  // -> Unblock the Validator Manager to check the pool's occupancy
-    sleep(2); // -- TODO: revert the sleep time back to 'sleeptime'
+    sleep(sleeptime); // -- TODO: revert the sleep time back to 'sleeptime'
   }
 
   // Process termination

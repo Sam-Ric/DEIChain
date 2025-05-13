@@ -36,7 +36,6 @@ sem_t *tx_pool_empty;     // Semaphore to control available slots in the Transac
 sem_t *ledger_mutex;      // Mutex to control access to the Blockchain Ledger
 sem_t *pipe_mutex;        // Mutex to control access to the named pipe
 sem_t *hash_mutex;        // Mutex to control access to the hash of the last validated block
-sem_t *stats_mutex;       // Mutex to control access to statistics metrics
 sem_t *stats_done;        // Semaphore to block other processes while the statistics are being printed
 sem_t *check_occupancy;   // Semaphore to avoid busy waiting on the Validator Manager thread
 
@@ -50,7 +49,7 @@ TxBlock *blocks;              // Blockchain Ledger shared memory pointer (mapped
 int msq_id;        // Message queue ID
 
 // Process IDs
-pid_t miner_pid, statistics_pid, validator_pid[3];
+pid_t controller_pid, miner_pid, statistics_pid, validator_pid[3];
 
 // Global variables
 int num_miners;                   // Number of miner threads
@@ -59,7 +58,7 @@ int tx_per_block;                 // Number of transactions per block
 int blockchain_blocks;            // Number of block slots in the Blockchain Ledger
 int stop_validator_manager;       // Flag to stop the validator manager
 FILE *log_file;                   // File pointer of the log file
-char *last_hash;
+char *last_hash;                  // String containing the hash of the last block added to the ledger
 
 void cleanup() {
   // Close the log file
@@ -89,7 +88,6 @@ void cleanup() {
   sem_close(ledger_mutex);
   sem_close(pipe_mutex);
   sem_close(hash_mutex);
-  sem_close(stats_mutex);
   sem_close(stats_done);
   sem_close(check_occupancy);
   sem_unlink("LOG_MUTEX");
@@ -99,7 +97,6 @@ void cleanup() {
   sem_unlink("LEDGER_MUTEX");
   sem_unlink("PIPE_MUTEX");
   sem_unlink("HASH_MUTEX");
-  sem_unlink("STATS_MUTEX");
   sem_unlink("STATS_DONE");
   sem_unlink("CHECK_OCCUPANCY");
 }
@@ -183,16 +180,18 @@ void* manage_validation(void *args) {
     
     // When enough transactions are available
     if (occupated_blocks >= tx_per_block) {
-      printf("[Controller] [Validator Manager] Signaling the miner threads\n");
+      if (DEBUG)
+        printf("    [Controller] [Validator Manager] Signaling the miner threads\n");
       // Signal all miner threads
       kill(miner_pid, SIGUSR2);
     }
     // When transactions drop below threshold => Reset the flag
-    else if (occupated_blocks < tx_per_block)
-      printf("[DEBUG] [Validator Manager] *** Not enough transactions in the pool ***\n");
+    else if (DEBUG)
+      printf("    [Controller] [Validator Manager] *** Not enough transactions in the pool ***\n");
 
     int occupancy = (int)((float)occupated_blocks / size * 100);
-    printf("[Controller] [Validator Manager] Current occupancy = %d\n", occupancy);
+    if (DEBUG)
+      printf("    [Controller] [Validator Manager] Current occupancy = %d%%\n", occupancy);
     // If the pool occupancy falls below 40%, terminate any additional validators
     if (occupancy < 40 && (aux1 == 1 || aux2 == 1)) {
       log_message("[Controller] [Validator Manager] Occupancy dropped below 40%. Terminating the additional Validator processes", 'r', DEBUG);
@@ -251,7 +250,22 @@ int main() {
     exit(-1);
   }
 
+  controller_pid = getpid();
+
   // Process initialization
+  char cover[] = 
+        " /$$$$$$$  /$$$$$$$$ /$$$$$$  /$$$$$$  /$$                 /$$          \n"
+        "| $$__  $$| $$_____/|_  $$_/ /$$__  $$| $$                |__/          \n"
+        "| $$  \\ $$| $$        | $$  | $$  \\__/| $$$$$$$   /$$$$$$  /$$ /$$$$$$$ \n"
+        "| $$  | $$| $$$$$     | $$  | $$      | $$__  $$ |____  $$| $$| $$__  $$\n"
+        "| $$  | $$| $$__/     | $$  | $$      | $$  \\ $$  /$$$$$$$| $$| $$  \\ $$\n"
+        "| $$  | $$| $$        | $$  | $$    $$| $$  | $$ /$$__  $$| $$| $$  | $$\n"
+        "| $$$$$$$/| $$$$$$$$ /$$$$$$|  $$$$$$/| $$  | $$|  $$$$$$$| $$| $$  | $$\n"
+        "|_______/ |________/|______/ \\______/ |__/  |__/ \\_______/|__/|__/  |__/\n";
+    
+  printf("\n%s\n", cover);
+  printf(" Welcome to the DEIChain blockchain simulation!\n\n");
+
   char msg[100];  // Variable use to temporarily store a message to be logged
   sprintf(msg, "[Controller] Process initialized (PID -> %d)", getpid());
   log_message(msg, 'r', DEBUG);
@@ -292,7 +306,6 @@ int main() {
 		exit(-1);
 	}
   log_message("[Controller] Transaction Pool attached to shared memory", 'r', DEBUG);
-  printf("[Validator] shmget key: %d | shmid: %d\n", tx_key, tx_pool_id);
 
   // -- Initialize the Transaction Pool elements
   for (int i = 0; i < tx_pool_size; i++) {
@@ -347,8 +360,6 @@ int main() {
   pipe_mutex = sem_open("PIPE_MUTEX", O_CREAT | O_EXCL, 0700, 1);
   sem_unlink("HASH_MUTEX");
   hash_mutex = sem_open("HASH_MUTEX", O_CREAT | O_EXCL, 0700, 1);
-  sem_unlink("STATS_MUTEX");
-  stats_mutex = sem_open("STATS_MUTEX", O_CREAT | O_EXCL, 0700, 1);
   sem_unlink("STATS_DONE");
   stats_done = sem_open("STATS_DONE", O_CREAT | O_EXCL, 0700, 0);
   sem_unlink("CHECK_OCCUPANCY");
@@ -371,14 +382,8 @@ int main() {
 
   // Creating the required processes
   // -- Miner process
-  struct MinerArgs miner_args;
-  miner_args.num_miners = num_miners;
-  miner_args.blocks = blocks;
-  miner_args.tx_per_block = tx_per_block;
-  miner_args.tx_pool = tx_pool;
-  miner_args.tx_pool_size = tx_pool_size;
   if ((miner_pid = fork()) == 0) {
-    miner(miner_args);
+    miner();
     exit(0);
   } else if (miner_pid < 0) {
     log_message("[Controller] Could not create the Miner process", 'w', 1);

@@ -237,7 +237,7 @@ void dump_ledger(TxBlock *blocks, int num_blocks, int tx_per_block) {
     fprintf(log_file, buffer);
     printf(buffer);
   }
-  fprintf(log_file, "\n[Controller] Blockchain Ledger dumped successfully\n\n");
+  fprintf(log_file, "\n   [Controller] Blockchain Ledger dumped successfully\n\n");
   fclose(log_file);
   sem_post(log_mutex);
   sem_post(ledger_mutex);
